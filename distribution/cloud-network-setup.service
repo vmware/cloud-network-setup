@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[Unit]
+Description=Configures network in cloud enviroment
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/cloud-network-setup
+WatchdogSec=20min
+
+[Install]
+WantedBy=multi-user.target

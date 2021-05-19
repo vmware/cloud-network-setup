@@ -1,0 +1,8 @@
+[System]
+RefreshTimer="300s"
+LogLevel="debug"
+LogFormat="text"
+
+[Network]
+Address="127.0.0.1"
+Port="5209"
