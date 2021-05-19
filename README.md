@@ -23,20 +23,25 @@ Configuration file `cloud-network.toml` located in `/etc/cloud-network-setup/` d
 The `[System]` section takes following Keys:
 
 `LogLevel=`
+
 Specifies the log level. Takes `debug`, `info`, `warning`. Defaults to `info`
 
 `LogFormat=`
+
 Specifies the log format. Takes one of text or json. Takes one of `text` or `json`, Defaults to `text`.
 
 `RefreshTimer=`
+
 Specifies the time interval,  is the amount of time taken to retrive the data from metadata endpoint.
 
 The `[Network]` section takes following Keys:
 
 `Address=`
+
 Specifies the IP address which the local REST API server will listen. Defaults to `127.0.0.1`.
 
 `Port=`
+
 Specifies the IP port which the local REST API server will listen. Defaults to `5209`.
 
 
