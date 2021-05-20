@@ -1,7 +1,9 @@
 #### cloud-network-setup
 ----
 
-```cloud-network-setup``` configures network in cloud enviroment. In cloud environment instances are set public IP and private IP. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured via DHCP. This project is adopting towards cloud network enviroment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign ip and routes. When `cloud-network-setup` is installed, it automatically configures network interfaces in cloud frameworks.  Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IPv4 addresses from the metadata server endpoint and configures them on the interface, if any.
+```cloud-network-setup``` configures network in cloud environment. In cloud environment instances are set public IP and private IP. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured via DHCP. This project is adopting towards cloud network enviroment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign ip and routes. When `cloud-network-setup` is installed, it automatically configures network interfaces in cloud frameworks.  Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IPv4 addresses from the metadata server endpoint and configures them on the interface, if any.
+
+A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance metadata is saved in per link basis in the directory `/run/cloud-network-setup`.
 
 Interface configurations is checked periodically, and in case the configuration in the cloud framework changed, the interface will be reconfigured accordingly.
 
@@ -49,7 +51,7 @@ Specifies the IP port which the local REST API server will listen. Defaults to `
 ❯ cat /etc/cloud-network-setup/cloud-network.toml
 [System]
 RefreshTimer="300s"
-LogLevel="debug"
+LogLevel="info"
 LogFormat="text"
 
 [Network]

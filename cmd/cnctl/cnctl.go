@@ -117,7 +117,7 @@ func fetchCloudSystemMetadata() {
 }
 
 func main() {
-	conf.ParseConfiguration()
+	conf.Parse()
 	log.SetOutput(ioutil.Discard)
 
 	cli.VersionPrinter = func(c *cli.Context) {

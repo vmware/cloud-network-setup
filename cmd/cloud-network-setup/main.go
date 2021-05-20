@@ -17,7 +17,6 @@ import (
 	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/router"
-	"github.com/cloud-network-setup/pkg/utils"
 	"github.com/okzk/sdnotify"
 	log "github.com/sirupsen/logrus"
 )
@@ -47,41 +46,42 @@ func retriveMetaDataAndConfigure(c *cloud.CloudManager) error {
 func main() {
 	log.Infof("cloud-network-setup: v%s (built %s)", conf.Version, runtime.Version())
 
-	utils.InitLog()
-
-	err := conf.ParseConfiguration()
+	c, err := conf.Parse()
 	if err != nil {
 		log.Errorf("Failed to parse conf file '%+v': %+v", conf.ConfFile, err)
 	}
 
-	os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
+	err = os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
+	if err != nil {
+		log.Errorf("Failed create run dir '/run/cloud-network-setup/links' for Cloud Manager: '%+v'", err)
+	}
 
-	c, err := cloud.NewCloudManager()
+	m, err := cloud.NewCloudManager()
 	if err != nil {
 		log.Errorf("Failed initialize Cloud Manager: '%+v'")
 		os.Exit(1)
 	}
 
-	err = retriveMetaDataAndConfigure(c)
+	err = retriveMetaDataAndConfigure(m)
 	if err != nil {
-		log.Errorf("Failed to fetch metadata and apply to links: %+v ", err)
+		log.Errorf("Failed to fetch instance metadata and apply to links: %+v ", err)
 	}
 
-	//Periodic timer to fetch data from endpoint
+	// Periodic timer to fetch data from endpoint
 	go func() {
 		tick := time.Tick(conf.RefreshTimerFlag * time.Second)
 		for {
 			<-tick
-			err = retriveMetaDataAndConfigure(c)
+			err = retriveMetaDataAndConfigure(m)
 			if err != nil {
-				log.Errorf("Failed to refresh metadata from endpoint '%s': %+v ", c.CloudProvider, err)
+				log.Errorf("Failed to refresh instance metadata from endpoint '%s': %+v ", m.CloudProvider, err)
 			}
 		}
 	}()
 
 	router := router.NewRouter()
 	srv := http.Server{
-		Addr:    net.JoinHostPort(conf.IPFlag, conf.PortFlag),
+		Addr:    net.JoinHostPort(c.Address, c.Port),
 		Handler: router,
 	}
 
@@ -106,6 +106,6 @@ func main() {
 		}
 	}()
 
-	log.Infof("Local Cache Server listening at %s:%s", conf.IPFlag, conf.PortFlag)
+	log.Infof("Local Instance Metadata Cache Server listening at '%s':'%s'", c.Address, c.Port)
 	log.Info(srv.ListenAndServe())
 }

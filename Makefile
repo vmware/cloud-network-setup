@@ -26,7 +26,7 @@ $(BUILDDIR)/%/:
 
 .PHONY: build
 build:
-	- mkdir bin
+	- mkdir -p bin
 	go build -ldflags="-X 'main.buildVersion=${VERSION}' -X 'main.buildDate=${BUILD_DATE}'" -o bin/cloud-network-setup ./cmd/cloud-network-setup
 	go build -ldflags="-X 'main.buildVersion=${VERSION}' -X 'main.buildDate=${BUILD_DATE}'" -o bin/cnctl ./cmd/cnctl/
 
