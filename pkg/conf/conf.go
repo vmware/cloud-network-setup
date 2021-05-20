@@ -67,7 +67,7 @@ func init() {
 // SetLogLevel: Set log level
 func SetLogLevel(level string) error {
 	if level == "" {
-		return nil
+		return errors.New("Failed to parse log level")
 	}
 
 	l, err := logrus.ParseLevel(level)
@@ -83,6 +83,10 @@ func SetLogLevel(level string) error {
 
 // SetLogFormat: Sets log format
 func SetLogFormat(format string) error {
+	if format == "" {
+		return errors.New("Failed to parse log format")
+	}
+
 	switch format {
 	case "json":
 		log.SetFormatter(&logrus.JSONFormatter{
@@ -101,6 +105,7 @@ func SetLogFormat(format string) error {
 
 	return nil
 }
+
 func Parse() (*Config, error) {
 	var conf Config
 
@@ -136,7 +141,6 @@ func Parse() (*Config, error) {
 	t, err := time.ParseDuration(conf.System.RefreshTimer)
 	if err != nil {
 		log.Warningf("Failed to parse RefreshTimer=%+v", conf.System.RefreshTimer)
-		return nil, err
 	} else {
 		RefreshTimerFlag = t
 	}
@@ -153,6 +157,8 @@ func Parse() (*Config, error) {
 		}
 	}
 
+	log.Debugf("Log level set to '%+v'", log.GetLevel().String())
+
 	err = SetLogFormat(viper.GetString("CLOUD_NETWORK_LOG_FORMAT"))
 	if err != nil {
 		err = SetLogFormat(conf.System.LogFormat)
@@ -163,7 +169,7 @@ func Parse() (*Config, error) {
 		}
 	}
 
-	log.Debugf("Successfully parsed Address=%+v and Port=%+v", conf.Network.Address, conf.Network.Port)
+	log.Debugf("Successfully parsed Address='%+v' and Port='%+v'", conf.Network.Address, conf.Network.Port)
 
 	return &conf, nil
 }

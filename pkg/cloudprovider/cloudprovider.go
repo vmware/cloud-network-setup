@@ -4,6 +4,7 @@ package cloudprovider
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
@@ -36,12 +37,14 @@ func fetchCloudMetadata(m *cloud.CloudManager) error {
 	switch m.CloudProvider {
 	case Azure:
 		err = azure.FetchAzureCloudMetadata(m)
+		fmt.Printf("cloud = %s\n", m.CloudProvider)
+		break
 	default:
-		return errors.New("Unknown Cloud enviroment")
+		return errors.New("Unknown Cloud Enviroment")
 	}
 
 	if err != nil {
-		log.Warningf("Failed to retrieve cloud provider %+v metadata: %+v", m.CloudProvider, err)
+		log.Warningf("Failed to retrieve cloud provider '%+v' instance metadata: %+v", m.CloudProvider, err)
 		return err
 	}
 
@@ -53,9 +56,9 @@ func ConfigureNetworkMetadata(m *cloud.CloudManager) error {
 
 	switch m.CloudProvider {
 	case Azure:
-		return azure.AddressConfigureCloudMetadata(m)
+		return azure.ConfigureCloudMetadataAddress(m)
 	default:
-		return errors.New("Unknown Cloud enviroment")
+		return errors.New("Unknown Cloud Enviroment")
 	}
 }
 
@@ -76,7 +79,7 @@ func SaveMetaData(m *cloud.CloudManager) error {
 		}
 		break
 	default:
-		return errors.New("Unknown Cloud enviroment")
+		return errors.New("Unknown Cloud Enviroment")
 	}
 
 	return nil

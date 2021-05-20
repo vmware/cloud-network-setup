@@ -34,7 +34,7 @@ func fetchCloudMetadata(url string) ([]byte, error) {
 }
 
 func displayAzureCloudNetworkMetadata(n *azure.Azure) {
-	links, err := network.AcquireLinksFromKernel()
+	links, err := network.AcquireLinks()
 	if err != nil {
 		return
 	}

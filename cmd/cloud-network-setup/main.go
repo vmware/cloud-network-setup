@@ -69,7 +69,7 @@ func main() {
 
 	// Periodic timer to fetch data from endpoint
 	go func() {
-		tick := time.Tick(conf.RefreshTimerFlag * time.Second)
+		tick := time.Tick(time.Duration(conf.RefreshTimerFlag.Seconds()) * time.Second)
 		for {
 			<-tick
 			err = retriveMetaDataAndConfigure(m)

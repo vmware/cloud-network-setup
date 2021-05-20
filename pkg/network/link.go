@@ -22,7 +22,7 @@ type Link struct {
 }
 
 // AcquireLinks Fetches link information
-func AcquireLinksFromKernel() (*Links, error) {
+func AcquireLinks() (*Links, error) {
 	links := make(map[string]Link)
 
 	linkList, err := netlink.LinkList()
@@ -49,24 +49,4 @@ func AcquireLinksFromKernel() (*Links, error) {
 	return &Links{
 		LinksByMAC: links,
 	}, nil
-}
-
-// AddAddress Add address to link
-func AddAddress(ifIndex int, addr string, prefix int) error {
-	link, err := netlink.LinkByIndex(ifIndex)
-	if err != nil {
-		return err
-	}
-
-	ip := &netlink.Addr{IPNet: &net.IPNet{
-		IP:   net.ParseIP(addr),
-		Mask: net.CIDRMask(prefix, 32),
-	}}
-
-	if err := netlink.AddrAdd(link, ip); err != nil && err.Error() != "file exists" {
-		return err
-	}
-
-	log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", addr, link.Attrs().Name, link.Attrs().Index)
-	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -151,34 +152,94 @@ func FetchAzureCloudMetadata(m *cloud.CloudManager) error {
 	return nil
 }
 
+func getAllIpv4AddressesFromMetadata(mac string, d *Azure) (map[string]bool, error) {
+	a := make(map[string]bool)
+
+	for i := 0; i < len(d.Network.Interface); i++ {
+		subnet := d.Network.Interface[i].Ipv4.Subnet[0]
+
+		_, err := strconv.ParseInt(subnet.Prefix, 10, 32)
+		if err != nil {
+			log.Errorf("Failed to parse prefix=%+v': %+v", subnet.Prefix, err)
+			continue
+		}
+
+		if strings.ToLower(utils.FormatTextToMAC(d.Network.Interface[i].MacAddress)) != mac {
+			continue
+		}
+
+		for j := 0; j < len(d.Network.Interface[i].Ipv4.IPAddress); j++ {
+			privateIP := d.Network.Interface[i].Ipv4.IPAddress[j].PrivateIPAddress + "/" + subnet.Prefix
+			a[privateIP] = true
+		}
+	}
+
+	return a, nil
+}
+
 // AddressConfigureCloudMetadata configures link address
-func AddressConfigureCloudMetadata(m *cloud.CloudManager) error {
+func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	d := m.MetaData.(Azure)
 
-	links, err := network.AcquireLinksFromKernel()
+	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < len(d.Network.Interface); i++ {
-		subnet := d.Network.Interface[i].Ipv4.Subnet[0]
+		mac := strings.ToLower(utils.FormatTextToMAC(d.Network.Interface[i].MacAddress))
 
-		for j := 0; j < len(d.Network.Interface[i].Ipv4.IPAddress); j++ {
-			mac := strings.ToLower(utils.FormatTextToMAC(d.Network.Interface[i].MacAddress))
+		l, ok := links.LinksByMAC[mac]
+		if !ok {
+			log.Errorf("Failed to find link having MAC Address='%+v': %+v", mac, err)
+			continue
+		}
 
-			l, ok := links.LinksByMAC[mac]
+		existingAddresses, err := network.GetIPv4Addreses(l.Name)
+		if err != nil {
+			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", l.Name, l.Ifindex, err)
+			continue
+		}
+
+		newAddresses, err := getAllIpv4AddressesFromMetadata(mac, &d)
+		if err != nil {
+			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", l.Name, l.Ifindex, err)
+			continue
+		}
+
+		eq := reflect.DeepEqual(existingAddresses, newAddresses)
+		if eq {
+			log.Debugf("Existing addresses='%+v' and new addresses='%+v' are same", existingAddresses, newAddresses)
+			continue
+		}
+
+		// Purge old addresses
+		for i := range existingAddresses {
+			_, ok = newAddresses[i]
 			if !ok {
-				continue
-			}
-
-			prefix, err := strconv.ParseInt(subnet.Prefix, 10, 32)
-			privateIP := d.Network.Interface[i].Ipv4.IPAddress[j].PrivateIPAddress
-
-			err = network.AddAddress(l.Ifindex, privateIP, int(prefix))
-			if err != nil {
-				log.Errorf("Failed to Add IP='%+v' to link='%+v'", privateIP, l.Name, err)
+				err = network.RemoveIPAddress(l.Name, i)
+				if err != nil {
+					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
+					continue
+				} else {
+					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+				}
 			}
 		}
+
+		for i := range newAddresses {
+			_, ok = existingAddresses[i]
+			if !ok {
+				err = network.SetAddress(l.Name, i)
+				if err != nil {
+					log.Errorf("Failed to add address='%+v' to link='%+v% ifindex='%d': +v", i, l.Name, l.Ifindex, err)
+					continue
+				}
+
+				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+			}
+		}
+
 	}
 
 	return nil
@@ -188,7 +249,7 @@ func AddressConfigureCloudMetadata(m *cloud.CloudManager) error {
 func SaveCloudMetadata(m *cloud.CloudManager) error {
 	f, err := os.Create("/run/cloud-network-setup/system")
 	if err != nil {
-		log.Errorf("Failed to create system file: ", err)
+		log.Errorf("Failed to create system file '/run/cloud-network-setup/system': ", err)
 		return err
 	}
 	defer f.Close()
@@ -205,7 +266,7 @@ func SaveCloudMetadata(m *cloud.CloudManager) error {
 func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 	d := m.MetaData.(Azure)
 
-	links, err := network.AcquireLinksFromKernel()
+	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
