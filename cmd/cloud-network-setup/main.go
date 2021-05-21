@@ -62,6 +62,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Infof("Detected cloud enviroment: '%+v'", m.CloudProvider)
+
 	err = retriveMetaDataAndConfigure(m)
 	if err != nil {
 		log.Errorf("Failed to fetch instance metadata and apply to links: %+v ", err)

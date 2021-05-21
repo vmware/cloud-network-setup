@@ -100,7 +100,7 @@ func SetLogFormat(format string) error {
 		})
 
 	default:
-		return errors.New("Invalid log format")
+		return errors.New("Failed to parse log format")
 	}
 
 	return nil
@@ -116,31 +116,31 @@ func Parse() (*Config, error) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Warningf("Faild to parse config file, %+v", err)
+		log.Warningf("Faild to parse config file: '%+v'", err)
 		return nil, err
 	}
 
 	err = viper.Unmarshal(&conf)
 	if err != nil {
-		log.Warningf("Failed to decode configuration, %+v", err)
+		log.Warningf("Failed to decode configuration: '%+v'", err)
 		return nil, err
 	}
 
 	_, err = utils.ParseIP(conf.Network.Address)
 	if err != nil {
-		log.Warningf("Failed to parse Address=%+v, %+v", conf.Network.Address, conf.Network.Port)
+		log.Warningf("Failed to parse Address='%+v' ort='%+v'", conf.Network.Address, conf.Network.Port)
 		IPFlag = conf.Network.Address
 	}
 
 	_, err = utils.ParsePort(conf.Network.Port)
 	if err != nil {
-		log.Warningf("Failed to parse Port=%+v", conf.Network.Port)
+		log.Warningf("Failed to parse Port='%+v'", conf.Network.Port)
 		PortFlag = conf.Network.Port
 	}
 
 	t, err := time.ParseDuration(conf.System.RefreshTimer)
 	if err != nil {
-		log.Warningf("Failed to parse RefreshTimer=%+v", conf.System.RefreshTimer)
+		log.Warningf("Failed to parse RefreshTimer='%+v'", conf.System.RefreshTimer)
 	} else {
 		RefreshTimerFlag = t
 	}
@@ -151,7 +151,7 @@ func Parse() (*Config, error) {
 	if err != nil {
 		err = SetLogLevel(conf.System.LogLevel)
 		if err != nil {
-			log.Warningf("Failed to parse LogLevel=%+v", conf.System.LogLevel)
+			log.Warningf("Failed to parse LogLevel='%+v'", conf.System.LogLevel)
 		} else {
 			LogLevelFlag = conf.System.LogLevel
 		}
@@ -163,7 +163,7 @@ func Parse() (*Config, error) {
 	if err != nil {
 		err = SetLogFormat(conf.System.LogFormat)
 		if err != nil {
-			log.Warningf("Failed to parse LogFormat=%+v", conf.System.LogFormat)
+			log.Warningf("Failed to parse LogFormat='%+v'", conf.System.LogFormat)
 		} else {
 			LogFormatFlag = conf.System.LogFormat
 		}

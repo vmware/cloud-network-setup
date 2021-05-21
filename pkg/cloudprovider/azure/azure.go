@@ -152,7 +152,7 @@ func FetchAzureCloudMetadata(m *cloud.CloudManager) error {
 	return nil
 }
 
-func getAllIpv4AddressesFromMetadata(mac string, d *Azure) (map[string]bool, error) {
+func parseIpv4AddressesFromMetadataByMac(mac string, d *Azure) (map[string]bool, error) {
 	a := make(map[string]bool)
 
 	for i := 0; i < len(d.Network.Interface); i++ {
@@ -169,8 +169,8 @@ func getAllIpv4AddressesFromMetadata(mac string, d *Azure) (map[string]bool, err
 		}
 
 		for j := 0; j < len(d.Network.Interface[i].Ipv4.IPAddress); j++ {
-			privateIP := d.Network.Interface[i].Ipv4.IPAddress[j].PrivateIPAddress + "/" + subnet.Prefix
-			a[privateIP] = true
+			privateIp := d.Network.Interface[i].Ipv4.IPAddress[j].PrivateIPAddress + "/" + subnet.Prefix
+			a[privateIp] = true
 		}
 	}
 
@@ -201,7 +201,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 			continue
 		}
 
-		newAddresses, err := getAllIpv4AddressesFromMetadata(mac, &d)
+		newAddresses, err := parseIpv4AddressesFromMetadataByMac(mac, &d)
 		if err != nil {
 			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", l.Name, l.Ifindex, err)
 			continue
@@ -209,7 +209,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 
 		eq := reflect.DeepEqual(existingAddresses, newAddresses)
 		if eq {
-			log.Debugf("Existing addresses='%+v' and new addresses='%+v' are same", existingAddresses, newAddresses)
+			log.Debugf("Existing addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are same. Skipping ...", existingAddresses, newAddresses)
 			continue
 		}
 
