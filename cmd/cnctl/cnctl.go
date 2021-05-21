@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 
 	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
@@ -49,7 +50,7 @@ func displayAzureCloudNetworkMetadata(n *azure.Azure) error {
 			publicIp += fmt.Sprintf("%s ", n.Network.Interface[i].Ipv4.IPAddress[j].PublicIPAddress)
 		}
 
-		l, ok := links.LinksByMAC[utils.FormatTextToMAC(n.Network.Interface[i].MacAddress)]
+		l, ok := links.LinksByMAC[strings.ToLower(utils.FormatTextToMAC(n.Network.Interface[i].MacAddress))]
 		if !ok {
 			continue
 		}
