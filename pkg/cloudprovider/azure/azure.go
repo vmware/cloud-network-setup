@@ -149,7 +149,6 @@ func FetchCloudMetadata(m *cloud.CloudManager) error {
 	json.Unmarshal(resp.Body(), &d)
 
 	m.MetaData = d
-
 	return nil
 }
 
@@ -240,7 +239,6 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
 			}
 		}
-
 	}
 
 	return nil
