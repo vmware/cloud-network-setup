@@ -4,7 +4,6 @@ package cloudprovider
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
@@ -36,9 +35,7 @@ func fetchCloudMetadata(m *cloud.CloudManager) error {
 
 	switch m.CloudProvider {
 	case Azure:
-		err = azure.FetchAzureCloudMetadata(m)
-		fmt.Printf("cloud = %s\n", m.CloudProvider)
-		break
+		err = azure.FetchCloudMetadata(m)
 	default:
 		return errors.New("Unknown Cloud Enviroment")
 	}
@@ -77,7 +74,6 @@ func SaveMetaData(m *cloud.CloudManager) error {
 		if err != nil {
 			return err
 		}
-		break
 	default:
 		return errors.New("Unknown Cloud Enviroment")
 	}
@@ -92,7 +88,6 @@ func RegisterRouterCloud(router *mux.Router) {
 	switch cloud.GetConext().CloudProvider {
 	case Azure:
 		azure.RegisterRouterAzure(n)
-		break
 	default:
 		return
 	}

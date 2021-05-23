@@ -12,16 +12,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloud-network-setup/pkg/cloud"
-	"github.com/cloud-network-setup/pkg/network"
-	"github.com/cloud-network-setup/pkg/utils"
 	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/cloud-network-setup/pkg/cloud"
+	"github.com/cloud-network-setup/pkg/network"
+	"github.com/cloud-network-setup/pkg/utils"
 )
 
 const (
-	// AzureIMDSRESTEndpoint Metadata enndpoint.
+	// AzureIMDSRESTEndpoint Metadata endpoint.
 	AzureIMDSRESTEndpoint string = "169.254.169.254"
 
 	// AzureAPIVersion API version
@@ -114,8 +115,8 @@ type Azure struct {
 		Interface []struct {
 			Ipv4 struct {
 				IPAddress []struct {
-					PrivateIPAddress string `json:"privateIpAddress,omitempty"`
-					PublicIPAddress  string `json:"publicIpAddress,omitempty"`
+					PrivateIpAddress string `json:"privateIpAddress,omitempty"`
+					PublicIpAddress  string `json:"publicIpAddress,omitempty"`
 				} `json:"ipAddress"`
 				Subnet []struct {
 					Address string `json:"address,omitempty"`
@@ -124,8 +125,8 @@ type Azure struct {
 			} `json:"ipv4"`
 			Ipv6 struct {
 				IPAddress []struct {
-					PrivateIPAddress string `json:"privateIpAddress,omitempty"`
-					PublicIPAddress  string `json:"publicIpAddress,omitempty"`
+					PrivateIpAddress string `json:"privateIpAddress,omitempty"`
+					PublicIpAddress  string `json:"publicIpAddress,omitempty"`
 				} `json:"ipAddress"`
 			} `json:"ipv6"`
 			MacAddress string `json:"macAddress,omitempty"`
@@ -134,13 +135,13 @@ type Azure struct {
 }
 
 // FetchAzureCloudMetadata - Fetch Azure cloud metadata
-func FetchAzureCloudMetadata(m *cloud.CloudManager) error {
+func FetchCloudMetadata(m *cloud.CloudManager) error {
 	client := resty.New()
 	client.SetHeader("Metadata", "True")
 
 	resp, err := client.R().Get("http://" + AzureIMDSRESTEndpoint + AzureMetadtaURLBase + AzureAPIVersion)
 	if resp.StatusCode() != 200 {
-		log.Errorf("Unexpected status code, expected %d, got %d instead", 200, resp.StatusCode())
+		log.Errorf("Failed to fetch metadata from Azure Instance Metadata Service: '%+v'", resp.StatusCode())
 		return err
 	}
 
@@ -160,7 +161,7 @@ func parseIpv4AddressesFromMetadataByMac(mac string, d *Azure) (map[string]bool,
 
 		_, err := strconv.ParseInt(subnet.Prefix, 10, 32)
 		if err != nil {
-			log.Errorf("Failed to parse prefix=%+v': %+v", subnet.Prefix, err)
+			log.Errorf("Failed to parse address prefix=%+v': %+v", subnet.Prefix, err)
 			continue
 		}
 
@@ -169,7 +170,7 @@ func parseIpv4AddressesFromMetadataByMac(mac string, d *Azure) (map[string]bool,
 		}
 
 		for j := 0; j < len(d.Network.Interface[i].Ipv4.IPAddress); j++ {
-			privateIp := d.Network.Interface[i].Ipv4.IPAddress[j].PrivateIPAddress + "/" + subnet.Prefix
+			privateIp := d.Network.Interface[i].Ipv4.IPAddress[j].PrivateIpAddress + "/" + subnet.Prefix
 			a[privateIp] = true
 		}
 	}
@@ -249,7 +250,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 func SaveCloudMetadata(m *cloud.CloudManager) error {
 	f, err := os.Create("/run/cloud-network-setup/system")
 	if err != nil {
-		log.Errorf("Failed to create system file '/run/cloud-network-setup/system': ", err)
+		log.Errorf("Failed to create system file '/run/cloud-network-setup/system': %+v", err)
 		return err
 	}
 	defer f.Close()
@@ -282,7 +283,7 @@ func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 		file := path.Join("/run/cloud-network-setup/links", s)
 		f, err := os.Create(file)
 		if err != nil {
-			log.Errorf("Failed to create link file '%+v': ", file, err)
+			log.Errorf("Failed to create link file '%+v': %+v", file, err)
 			return err
 		}
 

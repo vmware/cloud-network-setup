@@ -11,15 +11,16 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/go-resty/resty/v2"
+	"github.com/powersj/whatsthis"
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
+
 	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
-	"github.com/go-resty/resty/v2"
-	"github.com/powersj/whatsthis"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 )
 
 func fetchCloudMetadata(url string) ([]byte, error) {
@@ -27,7 +28,7 @@ func fetchCloudMetadata(url string) ([]byte, error) {
 
 	resp, err := client.R().Get(url)
 	if resp.StatusCode() != 200 {
-		fmt.Printf("Unexpected status code, expected instead: %s", resp.Error())
+		fmt.Printf("Failed to fetch metadata: '%v'", resp.Error())
 		return nil, err
 	}
 
@@ -46,8 +47,8 @@ func displayAzureCloudNetworkMetadata(n *azure.Azure) error {
 		var privateIp string
 		var publicIp string
 		for j := 0; j < len(n.Network.Interface[i].Ipv4.IPAddress); j++ {
-			privateIp += fmt.Sprintf("%s/%s ", n.Network.Interface[i].Ipv4.IPAddress[j].PrivateIPAddress, subnet.Prefix)
-			publicIp += fmt.Sprintf("%s ", n.Network.Interface[i].Ipv4.IPAddress[j].PublicIPAddress)
+			privateIp += fmt.Sprintf("%s/%s ", n.Network.Interface[i].Ipv4.IPAddress[j].PrivateIpAddress, subnet.Prefix)
+			publicIp += fmt.Sprintf("%s ", n.Network.Interface[i].Ipv4.IPAddress[j].PublicIpAddress)
 		}
 
 		l, ok := links.LinksByMAC[strings.ToLower(utils.FormatTextToMAC(n.Network.Interface[i].MacAddress))]
@@ -55,11 +56,11 @@ func displayAzureCloudNetworkMetadata(n *azure.Azure) error {
 			continue
 		}
 
-		fmt.Printf("            Name: %+v \n", l.Name)
-		fmt.Printf("     MAC Address: %+v \n", utils.FormatTextToMAC(n.Network.Interface[i].MacAddress))
-		fmt.Printf("       Public IP: %+v \n", publicIp)
-		fmt.Printf("      Private IP: %+v \n", privateIp)
-		fmt.Printf("          Subnet: %+v \n", subnet.Address)
+		fmt.Printf("             Name: %+v \n", l.Name)
+		fmt.Printf("      MAC Address: %+v \n", strings.ToLower(utils.FormatTextToMAC(n.Network.Interface[i].MacAddress)))
+		fmt.Printf("        Public IP: %+v \n", publicIp)
+		fmt.Printf("       Private IP: %+v \n", privateIp)
+		fmt.Printf("           Subnet: %+v \n\n", subnet.Address)
 	}
 
 	return nil
@@ -68,7 +69,7 @@ func displayAzureCloudNetworkMetadata(n *azure.Azure) error {
 func fetchCloudNetworkMetadata() error {
 	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/network")
 	if err != nil {
-		fmt.Printf("Failed to acquire link information: '%+v'", err)
+		fmt.Printf("Failed to fetch instance metadata: '%+v'", err)
 		return err
 	}
 
@@ -80,9 +81,8 @@ func fetchCloudNetworkMetadata() error {
 		json.Unmarshal(resp, &f)
 
 		displayAzureCloudNetworkMetadata(&f)
-		break
 	default:
-		fmt.Printf("Falied to determine cloud enviroment: %s", provider)
+		fmt.Printf("Unsupported cloud enviromennt: '%s'", provider)
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func displayAzureCloudSystemMetadata(c *azure.Azure) {
 	if len(c.Compute.LicenseType) > 0 {
 		fmt.Printf("     LicenseType : %+v \n", c.Compute.LicenseType)
 	}
-	fmt.Printf("    ComputerName): %+v \n", c.Compute.OsProfile.ComputerName)
+	fmt.Printf("     ComputerName: %+v \n", c.Compute.OsProfile.ComputerName)
 	if len(c.Compute.SecurityProfile.SecureBootEnabled) > 0 {
 		fmt.Printf("SecureBootEnabled: %+v \n", c.Compute.SecurityProfile.SecureBootEnabled)
 	}
@@ -134,8 +134,11 @@ func displayAzureCloudSystemMetadata(c *azure.Azure) {
 	if len(c.Compute.Offer) > 0 {
 		fmt.Printf("            Offer: %+v \n", c.Compute.Offer)
 	}
-	fmt.Printf("   AdminUsername : %+v \n", c.Compute.OsProfile.AdminUsername)
-	fmt.Printf("     Public Keys : %+v \n", c.Compute.PublicKeys)
+	if len(c.Compute.StorageProfile.DataDisks) > 0 {
+		fmt.Printf("       StorageProfile: %+v \n", c.Compute.StorageProfile.DataDisks)
+	}
+	fmt.Printf("    AdminUsername: %+v \n", c.Compute.OsProfile.AdminUsername)
+	fmt.Printf("      Public Keys: %+v \n\n", c.Compute.PublicKeys)
 
 }
 
@@ -153,9 +156,8 @@ func fetchCloudSystemMetadata() {
 		json.Unmarshal(resp, &f)
 
 		displayAzureCloudSystemMetadata(&f)
-		break
 	default:
-		fmt.Printf("Falied to determine cloud enviroment: '%+v'", err)
+		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
 		return
 	}
 }
@@ -201,6 +203,6 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Printf("Failed to run cli: %v", err)
+		fmt.Printf("Failed to run cli: '%v'", err)
 	}
 }

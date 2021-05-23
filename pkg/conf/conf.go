@@ -27,6 +27,7 @@ var (
 	PortFlag         string
 	LogLevelFlag     string
 	LogFormatFlag    string
+	LogTimeStampFlag bool
 	RefreshTimerFlag time.Duration
 )
 
@@ -66,14 +67,14 @@ func init() {
 
 // SetLogLevel: Set log level
 func SetLogLevel(level string) error {
-	if level == "" {
+	if len(level) <= 0 {
 		return errors.New("Failed to parse log level")
 	}
 
 	l, err := logrus.ParseLevel(level)
 	if err != nil {
 		logrus.WithField("level", level).Warn("Failed to parse log level, fallback to 'info'")
-		return errors.New("Invalid log format")
+		return errors.New("Unsupported")
 	} else {
 		logrus.SetLevel(l)
 	}
@@ -83,7 +84,7 @@ func SetLogLevel(level string) error {
 
 // SetLogFormat: Sets log format
 func SetLogFormat(format string) error {
-	if format == "" {
+	if len(format) <= 0 {
 		return errors.New("Failed to parse log format")
 	}
 
@@ -100,7 +101,7 @@ func SetLogFormat(format string) error {
 		})
 
 	default:
-		return errors.New("Failed to parse log format")
+		return errors.New("Unsupported")
 	}
 
 	return nil
@@ -108,8 +109,6 @@ func SetLogFormat(format string) error {
 
 func Parse() (*Config, error) {
 	var conf Config
-
-	flag.Parse()
 
 	viper.SetConfigName(ConfFile)
 	viper.AddConfigPath(ConfPath)
