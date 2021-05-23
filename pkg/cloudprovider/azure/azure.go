@@ -203,7 +203,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 
 		newAddresses, err := parseIpv4AddressesFromMetadataByMac(mac, &d)
 		if err != nil {
-			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", l.Name, l.Ifindex, err)
+			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
 			continue
 		}
 
@@ -232,7 +232,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 			if !ok {
 				err = network.SetAddress(l.Name, i)
 				if err != nil {
-					log.Errorf("Failed to add address='%+v' to link='%+v% ifindex='%d': +v", i, l.Name, l.Ifindex, err)
+					log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': +v", i, l.Name, l.Ifindex, err)
 					continue
 				}
 

@@ -238,7 +238,6 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	}
 
 	d := m.MetaData.(EC2Data)
-
 	for k, v := range d.macs {
 		j, err := json.Marshal(v)
 		if err != nil {
@@ -262,13 +261,13 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 
 		newAddresses, err := parseIpv4AddressesFromMetadata(n.LocalIpv4S, n.SubnetIpv4CidrBlock)
 		if err != nil {
-			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", l.Name, l.Ifindex, err)
+			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
 			continue
 		}
 
 		eq := reflect.DeepEqual(existingAddresses, newAddresses)
 		if eq {
-			log.Debugf("Existing addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are same. Skipping ...", existingAddresses, newAddresses)
+			log.Debugf("Existing addresses='%+v' and new addresses='%+v' received from ASW EC2 endpoint are same. Skipping ...", existingAddresses, newAddresses)
 			continue
 		}
 
@@ -277,7 +276,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 			if !ok {
 				err = network.SetAddress(l.Name, i)
 				if err != nil {
-					log.Errorf("Failed to add address='%+v' to link='%+v% ifindex='%d': +v", i, l.Name, l.Ifindex, err)
+					log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': +v", i, l.Name, l.Ifindex, err)
 					continue
 				}
 
