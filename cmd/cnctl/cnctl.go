@@ -18,6 +18,7 @@ import (
 
 	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
+	"github.com/cloud-network-setup/pkg/cloudprovider/ec2"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
@@ -67,6 +68,11 @@ func displayAzureCloudNetworkMetadata(n *azure.Azure) error {
 }
 
 func fetchCloudNetworkMetadata() error {
+	c, err := whatsthis.Cloud()
+	if c.Name == cloudprovider.AWS || err != nil {
+		return nil
+	}
+
 	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/network")
 	if err != nil {
 		fmt.Printf("Failed to fetch instance metadata: '%+v'", err)
@@ -139,7 +145,28 @@ func displayAzureCloudSystemMetadata(c *azure.Azure) {
 	}
 	fmt.Printf("    AdminUsername: %+v \n", c.Compute.OsProfile.AdminUsername)
 	fmt.Printf("      Public Keys: %+v \n\n", c.Compute.PublicKeys)
+}
 
+func displayEC2CloudSystemMetadata(c *ec2.EC2) {
+	fmt.Printf("                                  AmiID: %+v \n", c.AmiID)
+	fmt.Printf("                               Location: %+v \n", c.AmiLaunchIndex)
+	fmt.Printf("                                   Name: %+v \n", c.AmiManifestPath)
+	fmt.Printf("                                OS Type: %+v \n", c.BlockDeviceMapping)
+	fmt.Printf("                               Hostname: %+v \n", c.Hostname)
+	fmt.Printf("                         InstanceAction: %+v \n", c.InstanceAction)
+	fmt.Printf("                             InstanceID: %+v \n", c.InstanceID)
+	fmt.Printf("                      InstanceLifeCycle: %+v \n", c.InstanceLifeCycle)
+	fmt.Printf("                           InstanceType: %+v \n", c.InstanceType)
+	fmt.Printf("                         PublicHostname: %+v \n", c.PublicHostname)
+	fmt.Printf("                          LocalHostname: %+v \n", c.LocalHostname)
+	fmt.Printf("                              Placement: %+v \n", c.Placement)
+	fmt.Printf("                                Profile: %+v \n", c.Profile)
+	fmt.Printf("                                    Mac: %+v \n", c.Mac)
+	fmt.Printf("                              LocalIpv4: %+v \n", c.LocalIpv4)
+	fmt.Printf("                             PublicIpv4: %+v \n", c.PublicIpv4)
+	fmt.Printf("                        Services Domain: %+v \n", c.Services.Domain)
+	fmt.Printf("                     Services Partition: %+v \n", c.Services.Partition)
+	fmt.Printf("                             PublicKeys: %+v \n", c.PublicKeys)
 }
 
 func fetchCloudSystemMetadata() {
@@ -156,6 +183,13 @@ func fetchCloudSystemMetadata() {
 		json.Unmarshal(resp, &f)
 
 		displayAzureCloudSystemMetadata(&f)
+
+	case cloudprovider.AWS:
+
+		f := ec2.EC2{}
+		json.Unmarshal(resp, &f)
+
+		displayEC2CloudSystemMetadata(&f)
 	default:
 		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
 		return
@@ -185,10 +219,8 @@ func main() {
 				switch c.Args().First() {
 				case "system":
 					fetchCloudSystemMetadata()
-					break
 				case "network":
 					fetchCloudNetworkMetadata()
-					break
 				default:
 					fetchCloudSystemMetadata()
 					fetchCloudNetworkMetadata()

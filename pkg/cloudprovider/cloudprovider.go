@@ -93,6 +93,8 @@ func RegisterRouterCloud(router *mux.Router) {
 	switch cloud.GetConext().CloudProvider {
 	case Azure:
 		azure.RegisterRouterAzure(n)
+	case AWS:
+		ec2.RegisterRouterEC2(n)
 	default:
 		return
 	}

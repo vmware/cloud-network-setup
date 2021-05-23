@@ -14,10 +14,12 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
+	"github.com/cloud-network-setup/pkg/utils"
 )
 
 const (
@@ -267,7 +269,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 
 		eq := reflect.DeepEqual(existingAddresses, newAddresses)
 		if eq {
-			log.Debugf("Existing addresses='%+v' and new addresses='%+v' received from ASW EC2 endpoint are same. Skipping ...", existingAddresses, newAddresses)
+			log.Debugf("Existing addresses='%+v' and new addresses='%+v' received from AWS(EC2) endpoint are same. Skipping ...", existingAddresses, newAddresses)
 			continue
 		}
 
@@ -286,4 +288,20 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	}
 
 	return nil
+}
+
+func routerGetEC2(rw http.ResponseWriter, r *http.Request) {
+	d := cloud.GetConext().MetaData
+	ec2 := d.(EC2Data)
+
+	switch r.Method {
+	case "GET":
+		utils.JSONResponse(ec2.system, rw)
+	default:
+	}
+}
+
+// RegisterRouterAzure Register Azure APIs with router
+func RegisterRouterEC2(router *mux.Router) {
+	router.HandleFunc("/system", routerGetEC2)
 }

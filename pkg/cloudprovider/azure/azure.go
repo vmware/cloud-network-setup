@@ -302,7 +302,6 @@ func routerGetCompute(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		utils.JSONResponse(m, rw)
-		break
 	default:
 	}
 }
