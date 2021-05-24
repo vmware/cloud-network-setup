@@ -5,17 +5,20 @@ package gcp
 import (
 	"encoding/json"
 	"net"
+	"net/http"
 	"reflect"
 	"strconv"
 
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
+	"github.com/cloud-network-setup/pkg/utils"
 	"github.com/go-resty/resty/v2"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	// GCP IMDS REST Endpoint Metadata endpoint.
+	// GCP REST Endpoint Metadata endpoint.
 	GCPIMDSRESTEndpoint string = "metadata.google.internal"
 
 	// GCP Metadta URLBase
@@ -179,6 +182,20 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 			continue
 		}
 
+		// Purge old addresses
+		for i := range existingAddresses {
+			_, ok = newAddresses[i]
+			if !ok {
+				err = network.RemoveIPAddress(l.Name, i)
+				if err != nil {
+					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
+					continue
+				} else {
+					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+				}
+			}
+		}
+
 		for i := range newAddresses {
 			_, ok = existingAddresses[i]
 			if !ok {
@@ -194,4 +211,19 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	}
 
 	return nil
+}
+
+func routerGetGCP(rw http.ResponseWriter, r *http.Request) {
+	m := cloud.GetConext().MetaData.(GCP)
+
+	switch r.Method {
+	case "GET":
+		utils.JSONResponse(m, rw)
+	default:
+	}
+}
+
+func RegisterRouterGCP(router *mux.Router) {
+	router.HandleFunc("/network", routerGetGCP)
+	router.HandleFunc("/system", routerGetGCP)
 }

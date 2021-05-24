@@ -14,6 +14,7 @@ import (
 	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
 	"github.com/cloud-network-setup/pkg/cloudprovider/ec2"
+	"github.com/cloud-network-setup/pkg/cloudprovider/gcp"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
@@ -93,6 +94,29 @@ func displayEC2CloudNetworkMetadata(l *network.Link, n *ec2.MAC) error {
 	return nil
 }
 
+func displayGCPCloudNetworkMetadata(links *network.Links, g *gcp.GCP) error {
+	for i := 0; i < len(g.Instance.Networkinterfaces); i++ {
+		l, ok := links.LinksByMAC[g.Instance.Networkinterfaces[i].Mac]
+		if !ok {
+			continue
+		}
+
+		fmt.Printf("             Name: %+v \n", l.Name)
+		fmt.Printf("      MAC Address: %+v \n", g.Instance.Networkinterfaces[i].Mac)
+		fmt.Printf("       Dnsservers: %+v \n", g.Instance.Networkinterfaces[i].Dnsservers)
+		fmt.Printf("       Private IP: %+v \n", g.Instance.Networkinterfaces[i].IP)
+		fmt.Printf("          Gateway: %+v \n", g.Instance.Networkinterfaces[i].Gateway)
+		fmt.Printf("        Ipaliases: %+v \n", g.Instance.Networkinterfaces[i].Ipaliases)
+		fmt.Printf("              MTU: %+v \n", g.Instance.Networkinterfaces[i].Mtu)
+		fmt.Printf("          Network: %+v \n", g.Instance.Networkinterfaces[i].Network)
+		fmt.Printf("       Subnetmask: %+v \n", g.Instance.Networkinterfaces[i].Subnetmask)
+		fmt.Printf("Targetinstanceips: %+v \n", g.Instance.Networkinterfaces[i].Targetinstanceips)
+		fmt.Printf("    Accessconfigs: %+v \n\n", g.Instance.Networkinterfaces[i].Accessconfigs)
+	}
+
+	return nil
+}
+
 func fetchCloudNetworkMetadata() error {
 	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/network")
 	if err != nil {
@@ -129,6 +153,11 @@ func fetchCloudNetworkMetadata() error {
 
 			displayEC2CloudNetworkMetadata(&l, &t)
 		}
+	case cloudprovider.GCP:
+		f := gcp.GCP{}
+		json.Unmarshal(resp, &f)
+
+		displayGCPCloudNetworkMetadata(links, &f)
 	default:
 		fmt.Printf("Unsupported cloud enviromennt: '%s'", provider)
 	}
@@ -211,6 +240,26 @@ func displayEC2CloudSystemMetadata(c *ec2.EC2) {
 	fmt.Printf("        PublicKeys: %+v \n\n", c.PublicKeys)
 }
 
+func displayGCPCloudSystemMetadata(g *gcp.GCP) {
+	fmt.Printf("              ID: %+v \n", g.Instance.ID)
+	fmt.Printf("     Cpuplatform: %+v \n", g.Instance.Cpuplatform)
+	fmt.Printf("     Description: %+v \n", g.Instance.Description)
+	fmt.Printf(" Guestattributes: %+v \n", g.Instance.Guestattributes)
+	fmt.Printf("           Image: %+v \n", g.Instance.Image)
+	fmt.Printf("     Machinetype: %+v \n", g.Instance.Machinetype)
+	fmt.Printf("Maintenanceevent: %+v \n", g.Instance.Maintenanceevent)
+	fmt.Printf("            Name: %+v \n", g.Instance.Name)
+	fmt.Printf("      InstanceID: %+v \n", g.Instance.Scheduling)
+	fmt.Printf("      Scheduling: %+v \n", g.Instance.Virtualclock)
+	fmt.Printf("            Zone: %+v \n", g.Instance.Zone)
+	fmt.Printf("Remainingcputime: %+v \n", g.Instance.Remainingcputime)
+	fmt.Printf("        Sessions: %+v \n", g.Oslogin.Authenticate.Sessions)
+	fmt.Printf("       Projectid: %+v \n", g.Project.Projectid)
+	fmt.Printf("Numericprojectid: %+v \n", g.Project.Numericprojectid)
+	fmt.Printf("         SSHKeys: %+v \n", g.Project.Attributes.SSHKeys)
+	fmt.Printf("         Sshkeys: %+v \n\n", g.Project.Attributes.Sshkeys)
+}
+
 func fetchCloudSystemMetadata() {
 	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/system")
 	if err != nil {
@@ -229,6 +278,11 @@ func fetchCloudSystemMetadata() {
 		json.Unmarshal(resp, &f)
 
 		displayEC2CloudSystemMetadata(&f)
+	case cloudprovider.GCP:
+		f := gcp.GCP{}
+		json.Unmarshal(resp, &f)
+
+		displayGCPCloudSystemMetadata(&f)
 	default:
 		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
 		return

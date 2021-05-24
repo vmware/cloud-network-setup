@@ -99,6 +99,8 @@ func RegisterRouterCloud(router *mux.Router) {
 		azure.RegisterRouterAzure(n)
 	case AWS:
 		ec2.RegisterRouterEC2(n)
+	case GCP:
+		gcp.RegisterRouterGCP(n)
 	default:
 		return
 	}

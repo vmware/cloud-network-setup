@@ -271,6 +271,20 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 			continue
 		}
 
+		// Purge old addresses
+		for i := range existingAddresses {
+			_, ok = newAddresses[i]
+			if !ok {
+				err = network.RemoveIPAddress(l.Name, i)
+				if err != nil {
+					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
+					continue
+				} else {
+					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+				}
+			}
+		}
+
 		for i := range newAddresses {
 			_, ok = existingAddresses[i]
 			if !ok {
