@@ -25,10 +25,10 @@ const (
 	// EC2 Metadata endpoint.
 	EC2Endpoint string = "169.254.169.254"
 
-	//EC2 Metadata URL Base URL base
+	//EC2 Metadata URL Base
 	EC2MetaDataURLBase string = "/latest/meta-data/"
 
-	//EC2 Metadata mac URL URL base
+	//EC2 Metadata mac URL Base
 	EC2MetaDataNetwork string = "network/interfaces/macs/"
 )
 

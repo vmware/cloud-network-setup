@@ -5,12 +5,12 @@ package cloudprovider
 import (
 	"errors"
 
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
 	"github.com/cloud-network-setup/pkg/cloudprovider/ec2"
+	"github.com/cloud-network-setup/pkg/cloudprovider/gcp"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -40,8 +40,10 @@ func fetchCloudMetadata(m *cloud.CloudManager) error {
 		err = azure.FetchCloudMetadata(m)
 	case AWS:
 		err = ec2.FetchCloudMetadata(m)
+	case GCP:
+		err = gcp.FetchCloudMetadata(m)
 	default:
-		return errors.New("Unknown Cloud Enviroment")
+		return errors.New("unknown cloud enviroment")
 	}
 
 	if err != nil {
@@ -59,6 +61,8 @@ func ConfigureNetworkMetadata(m *cloud.CloudManager) error {
 		return azure.ConfigureCloudMetadataAddress(m)
 	case AWS:
 		return ec2.ConfigureCloudMetadataAddress(m)
+	case GCP:
+		return gcp.ConfigureCloudMetadataAddress(m)
 	default:
 		return errors.New("unknown cloud enviroment")
 	}
