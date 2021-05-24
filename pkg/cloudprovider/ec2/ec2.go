@@ -14,12 +14,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -33,7 +32,7 @@ const (
 	EC2MetaDataNetwork string = "network/interfaces/macs/"
 )
 
-type Mac struct {
+type MAC struct {
 	DeviceNumber     string `json:"device-number"`
 	InterfaceID      string `json:"interface-id"`
 	Ipv4Associations struct {
@@ -232,7 +231,6 @@ func parseIpv4AddressesFromMetadata(addresses string, cidr string) (map[string]b
 	return m, nil
 }
 
-// AddressConfigureCloudMetadata configures link address
 func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	links, err := network.AcquireLinks()
 	if err != nil {
@@ -246,7 +244,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 			return err
 		}
 
-		n := Mac{}
+		n := MAC{}
 		json.Unmarshal([]byte(j), &n)
 
 		l, ok := links.LinksByMAC[k]
@@ -290,7 +288,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	return nil
 }
 
-func routerGetEC2(rw http.ResponseWriter, r *http.Request) {
+func routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
 	d := cloud.GetConext().MetaData
 	ec2 := d.(EC2Data)
 
@@ -301,7 +299,18 @@ func routerGetEC2(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// RegisterRouterAzure Register Azure APIs with router
+func routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
+	d := cloud.GetConext().MetaData
+	ec2 := d.(EC2Data)
+
+	switch r.Method {
+	case "GET":
+		utils.JSONResponse(ec2.network, rw)
+	default:
+	}
+}
+
 func RegisterRouterEC2(router *mux.Router) {
-	router.HandleFunc("/system", routerGetEC2)
+	router.HandleFunc("/system", routerGetEC2System)
+	router.HandleFunc("/network", routerGetEC2Network)
 }

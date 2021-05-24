@@ -134,7 +134,6 @@ type Azure struct {
 	} `json:"network"`
 }
 
-// FetchAzureCloudMetadata - Fetch Azure cloud metadata
 func FetchCloudMetadata(m *cloud.CloudManager) error {
 	client := resty.New()
 	client.SetHeader("Metadata", "True")
@@ -177,7 +176,6 @@ func parseIpv4AddressesFromMetadataByMac(mac string, d *Azure) (map[string]bool,
 	return a, nil
 }
 
-// AddressConfigureCloudMetadata configures link address
 func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	d := m.MetaData.(Azure)
 
@@ -244,7 +242,6 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	return nil
 }
 
-// SaveCloudMetadata Saves azure link's metadata to /run
 func SaveCloudMetadata(m *cloud.CloudManager) error {
 	f, err := os.Create("/run/cloud-network-setup/system")
 	if err != nil {
@@ -261,7 +258,6 @@ func SaveCloudMetadata(m *cloud.CloudManager) error {
 	return nil
 }
 
-// LinkSaveCloudMetadata Saves azure link's metadata to /run
 func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 	d := m.MetaData.(Azure)
 
@@ -306,7 +302,6 @@ func routerGetCompute(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// RegisterRouterAzure Register Azure APIs with router
 func RegisterRouterAzure(router *mux.Router) {
 	router.HandleFunc("/network", routerGetCompute)
 	router.HandleFunc("/system", routerGetCompute)
