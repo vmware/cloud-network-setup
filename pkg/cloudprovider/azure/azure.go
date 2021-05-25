@@ -242,9 +242,9 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 }
 
 func SaveCloudMetadata(m *cloud.CloudManager) error {
-	f, err := os.Create("/run/cloud-network-setup/system")
+	f, err := os.OpenFile("/run/cloud-network-setup/system", os.O_RDWR, 0644)
 	if err != nil {
-		log.Errorf("Failed to create system file '/run/cloud-network-setup/system': %+v", err)
+		log.Errorf("Failed to open system file '/run/cloud-network-setup/system': %+v", err)
 		return err
 	}
 	defer f.Close()
@@ -274,12 +274,11 @@ func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 
 		s := strconv.Itoa(l.Ifindex)
 		file := path.Join("/run/cloud-network-setup/links", s)
-		f, err := os.Create(file)
+		f, err := os.OpenFile(file, os.O_RDWR, 0644)
 		if err != nil {
-			log.Errorf("Failed to create link file '%+v': %+v", file, err)
+			log.Errorf("Failed to open state file for link file '%+v': %+v", file, err)
 			return err
 		}
-
 		defer f.Close()
 
 		link := d.Network.Interface[i]

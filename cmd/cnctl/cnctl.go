@@ -246,9 +246,6 @@ func displayGCPCloudSystemMetadata(g *gcp.GCP) {
 	if len(g.Instance.Description) > 0 {
 		fmt.Printf("                            Description: %+v \n", g.Instance.Description)
 	}
-	if len(g.Instance.Guestattributes) > 0 {
-		fmt.Printf("                        Guestattributes: %+v \n", g.Instance.Guestattributes)
-	}
 	fmt.Printf("                                  Image: %+v \n", g.Instance.Image)
 	fmt.Printf("                            Machinetype: %+v \n", g.Instance.Machinetype)
 	fmt.Printf("                                  Disks: %+v \n", g.Instance.Disks)
@@ -259,7 +256,6 @@ func displayGCPCloudSystemMetadata(g *gcp.GCP) {
 	fmt.Printf("                 InstanceI Virtualclock: %+v \n", g.Instance.Virtualclock)
 	fmt.Printf("                                   Zone: %+v \n", g.Instance.Zone)
 	fmt.Printf("                       Remainingcputime: %+v \n", g.Instance.Remainingcputime)
-	fmt.Printf("                               Sessions: %+v \n", g.Oslogin.Authenticate.Sessions)
 	fmt.Printf("                              Projectid: %+v \n", g.Project.Projectid)
 	fmt.Printf("                       Numericprojectid: %+v \n", g.Project.Numericprojectid)
 }

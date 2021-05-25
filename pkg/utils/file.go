@@ -5,9 +5,10 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
+	"strconv"
 )
 
-// PathExists - Verify file or dir exists
 func PathExists(path string) bool {
 	_, r := os.Stat(path)
 	if os.IsNotExist(r) {
@@ -17,12 +18,36 @@ func PathExists(path string) bool {
 	return true
 }
 
-// CreateRunDir Creates link labels
 func CreateRunDir(path string) error {
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func CreateStatefile(path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	return nil
+}
+
+func CreateLinkStatefile(path string, index int) error {
+	s := strconv.Itoa(index)
+	file := filepath.Join("/run/cloud-network-setup/links", s)
+
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
 
 	return nil
 }

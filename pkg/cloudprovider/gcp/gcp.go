@@ -7,15 +7,18 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"os"
+	"path"
 	"reflect"
 	"strconv"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
-	"github.com/go-resty/resty/v2"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -209,6 +212,54 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
 			}
 		}
+	}
+
+	return nil
+}
+
+func SaveCloudMetadata(m *cloud.CloudManager) error {
+	f, err := os.OpenFile("/run/cloud-network-setup/system", os.O_RDWR, 0644)
+	if err != nil {
+		log.Errorf("Failed to open system file '/run/cloud-network-setup/system': %+v", err)
+		return err
+	}
+	defer f.Close()
+
+	k := m.MetaData.(GCP)
+
+	d, _ := json.MarshalIndent(k, "", " ")
+	f.Write(d)
+
+	return nil
+}
+
+func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
+	d := m.MetaData.(GCP)
+
+	links, err := network.AcquireLinks()
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(d.Instance.Networkinterfaces); i++ {
+		l, b := links.LinksByMAC[d.Instance.Networkinterfaces[i].Mac]
+		if !b {
+			continue
+		}
+
+		s := strconv.Itoa(l.Ifindex)
+		file := path.Join("/run/cloud-network-setup/links", s)
+		f, err := os.OpenFile(file, os.O_RDWR, 0644)
+		if err != nil {
+			log.Errorf("Failed to open state file for link file '%+v': %+v", file, err)
+			return err
+		}
+		defer f.Close()
+
+		link := d.Instance.Networkinterfaces[i]
+
+		d, _ := json.MarshalIndent(link, "", " ")
+		f.Write(d)
 	}
 
 	return nil

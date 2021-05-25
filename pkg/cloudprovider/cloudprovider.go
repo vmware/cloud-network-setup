@@ -5,12 +5,13 @@ package cloudprovider
 import (
 	"errors"
 
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
 	"github.com/cloud-network-setup/pkg/cloudprovider/ec2"
 	"github.com/cloud-network-setup/pkg/cloudprovider/gcp"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -80,6 +81,16 @@ func SaveMetaData(m *cloud.CloudManager) error {
 		}
 
 		err = azure.LinkSaveCloudMetadata(m)
+		if err != nil {
+			return err
+		}
+	case GCP:
+		err = gcp.SaveCloudMetadata(m)
+		if err != nil {
+			return err
+		}
+
+		err = gcp.LinkSaveCloudMetadata(m)
 		if err != nil {
 			return err
 		}

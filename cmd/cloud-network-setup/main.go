@@ -19,7 +19,9 @@ import (
 	"github.com/cloud-network-setup/pkg/cloud"
 	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/conf"
+	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/router"
+	"github.com/cloud-network-setup/pkg/utils"
 )
 
 func retriveMetaDataAndConfigure(c *cloud.CloudManager) error {
@@ -44,6 +46,23 @@ func retriveMetaDataAndConfigure(c *cloud.CloudManager) error {
 	return nil
 }
 
+func createLinkStateFiles() error {
+	links, err := network.AcquireLinks()
+	if err != nil {
+		return err
+	}
+
+	for _, l := range links.LinksByMAC {
+		err = utils.CreateLinkStatefile("/run/cloud-network-setup/links", l.Ifindex)
+		if err != nil {
+			log.Errorf("Failed to create state file for link='%+v' index='%+v'", l.Name, l.Ifindex)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	log.Infof("cloud-network-setup: v%s (built %s)", conf.Version, runtime.Version())
 
@@ -54,8 +73,15 @@ func main() {
 
 	err = os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
 	if err != nil {
-		log.Errorf("Failed create run dir '/run/cloud-network-setup/links' for Cloud Manager: '%+v'", err)
+		log.Errorf("Failed create run dir '/run/cloud-network-setup/links': '%+v'", err)
 	}
+
+	err = utils.CreateStatefile("/run/cloud-network-setup/system")
+	if err != nil {
+		log.Errorf("Failed create state file '/run/cloud-network-setup/system': '%+v'", err)
+	}
+
+	createLinkStateFiles()
 
 	m, err := cloud.NewCloudManager()
 	if err != nil {
