@@ -12,13 +12,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-resty/resty/v2"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
+	"github.com/go-resty/resty/v2"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

@@ -11,6 +11,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/go-resty/resty/v2"
+	"github.com/powersj/whatsthis"
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
+
 	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
 	"github.com/cloud-network-setup/pkg/cloudprovider/ec2"
@@ -18,10 +23,6 @@ import (
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
-	"github.com/go-resty/resty/v2"
-	"github.com/powersj/whatsthis"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 )
 
 func fetchCloudMetadata(url string) ([]byte, error) {
@@ -256,8 +257,6 @@ func displayGCPCloudSystemMetadata(g *gcp.GCP) {
 	fmt.Printf("        Sessions: %+v \n", g.Oslogin.Authenticate.Sessions)
 	fmt.Printf("       Projectid: %+v \n", g.Project.Projectid)
 	fmt.Printf("Numericprojectid: %+v \n", g.Project.Numericprojectid)
-	fmt.Printf("         SSHKeys: %+v \n", g.Project.Attributes.SSHKeys)
-	fmt.Printf("         Sshkeys: %+v \n\n", g.Project.Attributes.Sshkeys)
 }
 
 func fetchCloudSystemMetadata() {
@@ -289,6 +288,35 @@ func fetchCloudSystemMetadata() {
 	}
 }
 
+func displayGCPCloudSSSHKeysFromMetadata(g *gcp.GCP) {
+	k := strings.Trim(g.Project.Attributes.SSHKeys, " ") + "\n" + strings.Trim(g.Project.Attributes.Sshkeys, " ")
+	ssh := strings.Split(k, "\n")
+	for _, s := range ssh {
+		if len(s) > 0 {
+			fmt.Printf("ssh-key: %v\n\n", s)
+		}
+	}
+}
+
+func fetchSSHKeysFromCloudMetadata() {
+	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/system")
+	if err != nil {
+		return
+	}
+
+	provider, err := whatsthis.Cloud()
+	switch provider.Name {
+	case cloudprovider.GCP:
+		f := gcp.GCP{}
+		json.Unmarshal(resp, &f)
+
+		displayGCPCloudSSSHKeysFromMetadata(&f)
+	default:
+		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
+		return
+	}
+}
+
 func main() {
 	conf.Parse()
 	log.SetOutput(ioutil.Discard)
@@ -298,26 +326,42 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:     "cpctl",
+		Name:     "cnctl",
 		Version:  "v0.1",
 		HelpName: "Introspects cloud network metadata",
 	}
+
 	app.EnableBashCompletion = true
 	app.Commands = []*cli.Command{
 		{
 			Name:    "status",
 			Aliases: []string{"s"},
-			Usage:   "Show status system cloud metadata",
+			Usage:   "Display system or network status",
+			Subcommands: []*cli.Command{
+				{
+					Name:  "system",
+					Usage: "Display cloud system metadata",
+					Action: func(c *cli.Context) error {
+						fetchCloudSystemMetadata()
+						return nil
+					},
+				},
+				{
+					Name:  "network",
+					Usage: "Display cloud network metadata",
+					Action: func(c *cli.Context) error {
+						fetchCloudNetworkMetadata()
+						return nil
+					},
+				},
+			},
+		},
+		{
+			Name:    "ssh-keys",
+			Aliases: []string{"k"},
+			Usage:   "Display SSH keys",
 			Action: func(c *cli.Context) error {
-				switch c.Args().First() {
-				case "system":
-					fetchCloudSystemMetadata()
-				case "network":
-					fetchCloudNetworkMetadata()
-				default:
-					fetchCloudSystemMetadata()
-					fetchCloudNetworkMetadata()
-				}
+				fetchSSHKeysFromCloudMetadata()
 				return nil
 			},
 		},

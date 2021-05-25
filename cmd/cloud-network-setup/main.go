@@ -13,12 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/okzk/sdnotify"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/cloud-network-setup/pkg/cloud"
 	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/router"
-	"github.com/okzk/sdnotify"
-	log "github.com/sirupsen/logrus"
 )
 
 func retriveMetaDataAndConfigure(c *cloud.CloudManager) error {
@@ -90,11 +91,11 @@ func main() {
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt)
 	signal.Notify(s, syscall.SIGTERM)
-	signal.Notify(s, syscall.SIGKILL)
 	go func() {
 		<-s
 		sdnotify.Stopping()
 		if err := srv.Shutdown(context.Background()); err != nil {
+			os.Exit(1)
 		}
 		os.Exit(0)
 	}()
