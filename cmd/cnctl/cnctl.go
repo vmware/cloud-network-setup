@@ -64,13 +64,13 @@ func displayAzureCloudNetworkMetadata(links *network.Links, n *azure.Azure) erro
 }
 
 func displayEC2CloudNetworkMetadata(l *network.Link, n *ec2.MAC) error {
-	fmt.Printf("              Name: %+v \n", l.Name)
-	fmt.Printf("       MAC Address: %+v \n", n.Mac)
-	fmt.Printf("      Device Number: %+v \n", n.DeviceNumber)
-	fmt.Printf("       Interface ID: %+v \n", n.InterfaceID)
-	fmt.Printf("     Local Hostname: %+v \n", n.LocalHostname)
-	fmt.Printf("        Local Ipv4S: %+v \n", n.LocalIpv4S)
-	fmt.Printf("            OwnerID: %+v \n", n.OwnerID)
+	fmt.Printf("          Name: %+v \n", l.Name)
+	fmt.Printf("   MAC Address: %+v \n", n.Mac)
+	fmt.Printf(" Device Number: %+v \n", n.DeviceNumber)
+	fmt.Printf("  Interface ID: %+v \n", n.InterfaceID)
+	fmt.Printf("Local Hostname: %+v \n", n.LocalHostname)
+	fmt.Printf("   Local Ipv4S: %+v \n", n.LocalIpv4S)
+	fmt.Printf("       OwnerID: %+v \n", n.OwnerID)
 
 	if len(n.PublicHostname) > 0 {
 		fmt.Printf("     PublicHostname: %+v \n", n.PublicHostname)
@@ -216,7 +216,6 @@ func displayAzureCloudSystemMetadata(c *azure.Azure) {
 		fmt.Printf("       StorageProfile: %+v \n", c.Compute.StorageProfile.DataDisks)
 	}
 	fmt.Printf("    AdminUsername: %+v \n", c.Compute.OsProfile.AdminUsername)
-	fmt.Printf("      Public Keys: %+v \n\n", c.Compute.PublicKeys)
 }
 
 func displayEC2CloudSystemMetadata(c *ec2.EC2) {
@@ -238,7 +237,6 @@ func displayEC2CloudSystemMetadata(c *ec2.EC2) {
 	fmt.Printf("        PublicIpv4: %+v \n", c.PublicIpv4)
 	fmt.Printf("   Services Domain: %+v \n", c.Services.Domain)
 	fmt.Printf("Services Partition: %+v \n", c.Services.Partition)
-	fmt.Printf("        PublicKeys: %+v \n\n", c.PublicKeys)
 }
 
 func displayGCPCloudSystemMetadata(g *gcp.GCP) {
@@ -288,7 +286,16 @@ func fetchCloudSystemMetadata() {
 	}
 }
 
-func displayGCPCloudSSSHKeysFromMetadata(g *gcp.GCP) {
+func displayAzureCloudSSHKeysFromMetadata(c *azure.Azure) {
+	fmt.Printf("AdminUsername: %+v \n", c.Compute.OsProfile.AdminUsername)
+	fmt.Printf("  Public Keys: %+v \n\n", c.Compute.PublicKeys)
+}
+
+func displayEC2CloudSSHKeysFromMetadata(c *ec2.EC2) {
+	fmt.Printf("PublicKeys: %+v \n\n", c.PublicKeys)
+}
+
+func displayGCPCloudSSHKeysFromMetadata(g *gcp.GCP) {
 	k := strings.Trim(g.Project.Attributes.SSHKeys, " ") + "\n" + strings.Trim(g.Project.Attributes.Sshkeys, " ")
 	ssh := strings.Split(k, "\n")
 	for _, s := range ssh {
@@ -306,11 +313,21 @@ func fetchSSHKeysFromCloudMetadata() {
 
 	provider, err := whatsthis.Cloud()
 	switch provider.Name {
+	case cloudprovider.Azure:
+		f := azure.Azure{}
+		json.Unmarshal(resp, &f)
+
+		displayAzureCloudSSHKeysFromMetadata(&f)
+	case cloudprovider.AWS:
+		f := ec2.EC2{}
+		json.Unmarshal(resp, &f)
+
+		displayEC2CloudSSHKeysFromMetadata(&f)
 	case cloudprovider.GCP:
 		f := gcp.GCP{}
 		json.Unmarshal(resp, &f)
 
-		displayGCPCloudSSSHKeysFromMetadata(&f)
+		displayGCPCloudSSHKeysFromMetadata(&f)
 	default:
 		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
 		return
