@@ -279,6 +279,12 @@ func displayGCPCloudSystemMetadata(g *gcp.GCP, provider string) {
 	fmt.Printf("                       Remainingcputime: %+v \n", g.Instance.Remainingcputime)
 	fmt.Printf("                              Projectid: %+v \n", g.Project.Projectid)
 	fmt.Printf("                       Numericprojectid: %+v \n", g.Project.Numericprojectid)
+	fmt.Printf(" Instane Serviceaccounts Default Aliase: %+v \n", g.Instance.Serviceaccounts.Default.Aliases)
+	fmt.Printf("  Instane Serviceaccounts Default Email: %+v \n", g.Instance.Serviceaccounts.Default.Email)
+	fmt.Printf(" Instane Serviceaccounts Default Scopes: %+v \n", strings.Join(g.Instance.Serviceaccounts.Default.Scopes, " "))
+	fmt.Printf("         Instane Serviceaccounts Aliase: %+v \n", g.Instance.Serviceaccounts.Three8191186391ComputeDeveloperGserviceaccountCom.Aliases)
+	fmt.Printf("          Instane Serviceaccounts Email: %+v \n", g.Instance.Serviceaccounts.Three8191186391ComputeDeveloperGserviceaccountCom.Email)
+	fmt.Printf("         Instane Serviceaccounts Scopes: %+v \n", strings.Join(g.Instance.Serviceaccounts.Three8191186391ComputeDeveloperGserviceaccountCom.Scopes, " "))
 }
 
 func fetchCloudSystemMetadata() {
