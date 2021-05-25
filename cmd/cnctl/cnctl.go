@@ -102,17 +102,29 @@ func displayGCPCloudNetworkMetadata(links *network.Links, g *gcp.GCP) error {
 			continue
 		}
 
-		fmt.Printf("             Name: %+v \n", l.Name)
-		fmt.Printf("      MAC Address: %+v \n", g.Instance.Networkinterfaces[i].Mac)
-		fmt.Printf("       Dnsservers: %+v \n", g.Instance.Networkinterfaces[i].Dnsservers)
-		fmt.Printf("       Private IP: %+v \n", g.Instance.Networkinterfaces[i].IP)
-		fmt.Printf("          Gateway: %+v \n", g.Instance.Networkinterfaces[i].Gateway)
-		fmt.Printf("        Ipaliases: %+v \n", g.Instance.Networkinterfaces[i].Ipaliases)
-		fmt.Printf("              MTU: %+v \n", g.Instance.Networkinterfaces[i].Mtu)
-		fmt.Printf("          Network: %+v \n", g.Instance.Networkinterfaces[i].Network)
-		fmt.Printf("       Subnetmask: %+v \n", g.Instance.Networkinterfaces[i].Subnetmask)
-		fmt.Printf("Targetinstanceips: %+v \n", g.Instance.Networkinterfaces[i].Targetinstanceips)
-		fmt.Printf("    Accessconfigs: %+v \n\n", g.Instance.Networkinterfaces[i].Accessconfigs)
+		fmt.Printf("                    Name: %+v \n", l.Name)
+		fmt.Printf("             MAC Address: %+v \n", g.Instance.Networkinterfaces[i].Mac)
+		fmt.Printf("                     MTU: %+v \n", g.Instance.Networkinterfaces[i].Mtu)
+		fmt.Printf("              Private IP: %+v \n", g.Instance.Networkinterfaces[i].IP)
+
+		if len(g.Instance.Networkinterfaces[i].Ipaliases) > 0 {
+			fmt.Printf("               Ipaliases: %+v \n", strings.Join(g.Instance.Networkinterfaces[i].Ipaliases, " "))
+		}
+
+		fmt.Printf("              Subnetmask: %+v \n", g.Instance.Networkinterfaces[i].Subnetmask)
+		fmt.Printf("                 Gateway: %+v \n", g.Instance.Networkinterfaces[i].Gateway)
+		fmt.Printf("              Dnsservers: %+v \n", strings.Join(g.Instance.Networkinterfaces[i].Dnsservers, " "))
+		fmt.Printf("                 Network: %+v \n", g.Instance.Networkinterfaces[i].Network)
+
+		if len(g.Instance.Networkinterfaces[i].Targetinstanceips) > 0 {
+			fmt.Printf("       Targetinstanceips: %+v \n", g.Instance.Networkinterfaces[i].Targetinstanceips)
+		}
+
+		for i := range g.Instance.Networkinterfaces[i].Accessconfigs {
+			fmt.Printf("Accessconfigs Externalip: %+v Type: %+v\n", g.Instance.Networkinterfaces[i].Accessconfigs[i].Externalip, g.Instance.Networkinterfaces[i].Accessconfigs[i].Type)
+		}
+
+		fmt.Println()
 	}
 
 	return nil
@@ -239,7 +251,8 @@ func displayEC2CloudSystemMetadata(c *ec2.EC2) {
 	fmt.Printf("Services Partition: %+v \n", c.Services.Partition)
 }
 
-func displayGCPCloudSystemMetadata(g *gcp.GCP) {
+func displayGCPCloudSystemMetadata(g *gcp.GCP, provider string) {
+	fmt.Printf("                         Cloud Provider: %+v \n", provider)
 	fmt.Printf("                                     ID: %+v \n", g.Instance.ID)
 	fmt.Printf("                                   Name: %+v \n", g.Instance.Name)
 	fmt.Printf("                            Cpuplatform: %+v \n", g.Instance.Cpuplatform)
@@ -248,12 +261,20 @@ func displayGCPCloudSystemMetadata(g *gcp.GCP) {
 	}
 	fmt.Printf("                                  Image: %+v \n", g.Instance.Image)
 	fmt.Printf("                            Machinetype: %+v \n", g.Instance.Machinetype)
-	fmt.Printf("                                  Disks: %+v \n", g.Instance.Disks)
+
+	for i := range g.Instance.Disks {
+		fmt.Printf("                        Disk Devicename: %+v \n", g.Instance.Disks[i].Devicename)
+		fmt.Printf("                             Disk Index: %+v \n", g.Instance.Disks[i].Index)
+		fmt.Printf("                         Disk Interface: %+v \n", g.Instance.Disks[i].Interface)
+		fmt.Printf("                              Disk Mode: %+v \n", g.Instance.Disks[i].Mode)
+		fmt.Printf("                              Disk Type: %+v \n", g.Instance.Disks[i].Type)
+	}
+
 	fmt.Printf("                       Maintenanceevent: %+v \n", g.Instance.Maintenanceevent)
 	fmt.Printf(" InstanceID Scheduling Automaticrestart: %+v \n", g.Instance.Scheduling.Automaticrestart)
 	fmt.Printf("InstanceID Scheduling Onhostmaintenance: %+v \n", g.Instance.Scheduling.Onhostmaintenance)
 	fmt.Printf("      InstanceID Scheduling Preemptible: %+v \n", g.Instance.Scheduling.Preemptible)
-	fmt.Printf("                 InstanceI Virtualclock: %+v \n", g.Instance.Virtualclock)
+	fmt.Printf("       Instance Virtualclock Drifttoken: %+v \n", g.Instance.Virtualclock.Drifttoken)
 	fmt.Printf("                                   Zone: %+v \n", g.Instance.Zone)
 	fmt.Printf("                       Remainingcputime: %+v \n", g.Instance.Remainingcputime)
 	fmt.Printf("                              Projectid: %+v \n", g.Project.Projectid)
@@ -282,7 +303,7 @@ func fetchCloudSystemMetadata() {
 		f := gcp.GCP{}
 		json.Unmarshal(resp, &f)
 
-		displayGCPCloudSystemMetadata(&f)
+		displayGCPCloudSystemMetadata(&f, provider.Name)
 	default:
 		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
 		return
