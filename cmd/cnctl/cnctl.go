@@ -240,21 +240,28 @@ func displayEC2CloudSystemMetadata(c *ec2.EC2) {
 }
 
 func displayGCPCloudSystemMetadata(g *gcp.GCP) {
-	fmt.Printf("              ID: %+v \n", g.Instance.ID)
-	fmt.Printf("     Cpuplatform: %+v \n", g.Instance.Cpuplatform)
-	fmt.Printf("     Description: %+v \n", g.Instance.Description)
-	fmt.Printf(" Guestattributes: %+v \n", g.Instance.Guestattributes)
-	fmt.Printf("           Image: %+v \n", g.Instance.Image)
-	fmt.Printf("     Machinetype: %+v \n", g.Instance.Machinetype)
-	fmt.Printf("Maintenanceevent: %+v \n", g.Instance.Maintenanceevent)
-	fmt.Printf("            Name: %+v \n", g.Instance.Name)
-	fmt.Printf("      InstanceID: %+v \n", g.Instance.Scheduling)
-	fmt.Printf("      Scheduling: %+v \n", g.Instance.Virtualclock)
-	fmt.Printf("            Zone: %+v \n", g.Instance.Zone)
-	fmt.Printf("Remainingcputime: %+v \n", g.Instance.Remainingcputime)
-	fmt.Printf("        Sessions: %+v \n", g.Oslogin.Authenticate.Sessions)
-	fmt.Printf("       Projectid: %+v \n", g.Project.Projectid)
-	fmt.Printf("Numericprojectid: %+v \n", g.Project.Numericprojectid)
+	fmt.Printf("                                     ID: %+v \n", g.Instance.ID)
+	fmt.Printf("                                   Name: %+v \n", g.Instance.Name)
+	fmt.Printf("                            Cpuplatform: %+v \n", g.Instance.Cpuplatform)
+	if len(g.Instance.Description) > 0 {
+		fmt.Printf("                            Description: %+v \n", g.Instance.Description)
+	}
+	if len(g.Instance.Guestattributes) > 0 {
+		fmt.Printf("                        Guestattributes: %+v \n", g.Instance.Guestattributes)
+	}
+	fmt.Printf("                                  Image: %+v \n", g.Instance.Image)
+	fmt.Printf("                            Machinetype: %+v \n", g.Instance.Machinetype)
+	fmt.Printf("                                  Disks: %+v \n", g.Instance.Disks)
+	fmt.Printf("                       Maintenanceevent: %+v \n", g.Instance.Maintenanceevent)
+	fmt.Printf(" InstanceID Scheduling Automaticrestart: %+v \n", g.Instance.Scheduling.Automaticrestart)
+	fmt.Printf("InstanceID Scheduling Onhostmaintenance: %+v \n", g.Instance.Scheduling.Onhostmaintenance)
+	fmt.Printf("      InstanceID Scheduling Preemptible: %+v \n", g.Instance.Scheduling.Preemptible)
+	fmt.Printf("                 InstanceI Virtualclock: %+v \n", g.Instance.Virtualclock)
+	fmt.Printf("                                   Zone: %+v \n", g.Instance.Zone)
+	fmt.Printf("                       Remainingcputime: %+v \n", g.Instance.Remainingcputime)
+	fmt.Printf("                               Sessions: %+v \n", g.Oslogin.Authenticate.Sessions)
+	fmt.Printf("                              Projectid: %+v \n", g.Project.Projectid)
+	fmt.Printf("                       Numericprojectid: %+v \n", g.Project.Numericprojectid)
 }
 
 func fetchCloudSystemMetadata() {
