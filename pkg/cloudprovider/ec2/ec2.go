@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path"
 	"reflect"
 	"strconv"
@@ -382,7 +381,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 					continue
 				}
 
-				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+				log.Infof("Successfully added address='%+v' on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
 			}
 		}
 	}
@@ -391,22 +390,20 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 }
 
 func SaveCloudMetadata(m *cloud.CloudManager) error {
-	f, err := os.OpenFile("/run/cloud-network-setup/system", os.O_RDWR|os.O_CREATE, 0755)
+	k := m.MetaData.(EC2Data)
+
+	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", k.system)
 	if err != nil {
-		log.Errorf("Failed to open system file '/run/cloud-network-setup/system': %+v", err)
+		log.Errorf("Failed to write system file: %+v", err)
 		return err
 	}
-	defer f.Close()
-
-	k := m.MetaData.(EC2Data)
-	d, _ := json.MarshalIndent(k.system, "", " ")
-	f.Write(d)
 
 	return nil
 }
 
 func SaveCloudMetadataIdentityCredentials(m *cloud.CloudManager) error {
 	c := m.MetaData.(EC2Data)
+
 	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/credentials", c.credentials)
 	if err != nil {
 		log.Errorf("Failed to save instance credentials metadata 'credentials': %+v", err)
@@ -448,31 +445,23 @@ func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 	}
 
 	for k, v := range d.macs {
-		j, err := json.Marshal(v)
-		if err != nil {
-			return err
-		}
-
-		n := MAC{}
-		json.Unmarshal([]byte(j), &n)
-
 		l, ok := links.LinksByMAC[k]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%+v': %+v", k, err)
 			continue
 		}
 
-		s := strconv.Itoa(l.Ifindex)
-		file := path.Join("/run/cloud-network-setup/links", s)
-		f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE, 0755)
+		j, _ := json.Marshal(v)
+
+		n := MAC{}
+		json.Unmarshal([]byte(j), &n)
+
+		file := path.Join("/run/cloud-network-setup/links", strconv.Itoa(l.Ifindex))
+		err = utils.CreateAndSaveJSON(file, n)
 		if err != nil {
-			log.Errorf("Failed to open state file for link file '%+v': %+v", file, err)
+			log.Errorf("Failed to write state file '%+v' for link='%+v'': %+v", file, l.Name, err)
 			return err
 		}
-		defer f.Close()
-
-		d, _ := json.MarshalIndent(n, "", " ")
-		f.Write(d)
 	}
 
 	return nil
