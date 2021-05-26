@@ -35,8 +35,27 @@ const (
 	//EC2 Metadata mac URL Base
 	EC2MetaDataNetwork string = "network/interfaces/macs/"
 
-	EC2MetaDataIdentityCredentials string = "identity-credentials/ec2/security-credentials/ec2-instance/"
+	EC2MetaDataIdentityCredentials     string = "identity-credentials/ec2/security-credentials/ec2-instance/"
+	EC2MetaDataDynamicIdentityDocument string = "/latest/dynamic/instance-identity/"
 )
+
+type Document struct {
+	Accountid               string   `json:"accountId"`
+	Architecture            string   `json:"architecture"`
+	Availabilityzone        string   `json:"availabilityZone"`
+	Billingproducts         []string `json:"billingProducts"`
+	Devpayproductcodes      []string `json:"devpayProductCodes"`
+	Marketplaceproductcodes []string `json:"marketplaceProductCodes"`
+	Imageid                 string   `json:"imageId"`
+	Instanceid              string   `json:"instanceId"`
+	Instancetype            string   `json:"instanceType"`
+	Kernelid                string   `json:"kernelId"`
+	Pendingtime             string   `json:"pendingTime"`
+	Privateip               string   `json:"privateIp"`
+	Ramdiskid               string   `json:"ramdiskId"`
+	Region                  string   `json:"region"`
+	Version                 string   `json:"version"`
+}
 
 type Credentials struct {
 	Code            string `json:"Code"`
@@ -120,7 +139,12 @@ type EC2Data struct {
 	system      EC2MetaData
 	network     EC2MetaData
 	credentials EC2MetaData
-	macs        map[string]EC2MetaData
+	document    EC2MetaData
+	pkcs7       EC2MetaData
+	signature   EC2MetaData
+	rsa2048     EC2MetaData
+
+	macs map[string]EC2MetaData
 }
 
 type EC2MetaData interface{}
@@ -128,7 +152,7 @@ type EC2MetaData interface{}
 func fetchCloudMetadataByURL(url string) []string {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Errorf("Failed to fetch Instance metadata from endpoint: '%v'", err)
+		log.Errorf("Failed to fetch instance metadata from endpoint: '%v'", err)
 		return nil
 	}
 	defer resp.Body.Close()
@@ -167,7 +191,6 @@ func fetchCloudMetadataLoop(url string) EC2MetaData {
 		case strings.HasSuffix(line, "/"):
 			m[line[:len(line)-1]] = fetchCloudMetadataLoop(url + line)
 		case strings.HasSuffix(url, "public-keys/"):
-			fmt.Println(url)
 			keyId := strings.SplitN(line, "=", 2)[0]
 			m[line] = fetchCloudMetadataByURL(url + keyId + "/openssh-key")[0]
 		default:
@@ -198,7 +221,8 @@ func fetchMACAddresses(url string) ([]string, error) {
 	return strings.Fields(strings.TrimRight(s, "/")), nil
 }
 
-func fetchIdentityCredentials(url string) ([]byte, error) {
+func fetchMetadata(url string) ([]byte, error) {
+	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -223,7 +247,27 @@ func FetchCloudMetadata(m *cloud.CloudManager) error {
 		return err
 	}
 
-	c, err := fetchIdentityCredentials("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials)
+	c, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials)
+	if err != nil {
+		return err
+	}
+
+	doc, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "document")
+	if err != nil {
+		return err
+	}
+
+	pkcs7, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "pkcs7")
+	if err != nil {
+		return err
+	}
+
+	signature, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "signature")
+	if err != nil {
+		return err
+	}
+
+	rsa2048, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "rsa2048")
 	if err != nil {
 		return err
 	}
@@ -234,10 +278,17 @@ func FetchCloudMetadata(m *cloud.CloudManager) error {
 	var cred Credentials
 	json.Unmarshal(c, &cred)
 
+	var t Document
+	json.Unmarshal(doc, &t)
+
 	d := EC2Data{
 		system:      s,
 		network:     n,
 		credentials: cred,
+		document:    t,
+		pkcs7:       pkcs7,
+		signature:   signature,
+		rsa2048:     rsa2048,
 		macs:        make(map[string]EC2MetaData),
 	}
 
@@ -442,8 +493,30 @@ func routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
+	d := cloud.GetConext().MetaData
+	ec2 := d.(EC2Data)
+
+	p := r.URL.Path
+
+	switch r.Method {
+	case "GET":
+		if strings.HasSuffix(p, "document") {
+			utils.JSONResponse(ec2.document, rw)
+		} else if strings.HasSuffix(p, "pkcs7") {
+			utils.JSONResponse(ec2.pkcs7, rw)
+		} else if strings.HasSuffix(p, "signature") {
+			utils.JSONResponse(ec2.signature, rw)
+		} else if strings.HasSuffix(p, "rsa2048") {
+			utils.JSONResponse(ec2.rsa2048, rw)
+		}
+	default:
+	}
+}
+
 func RegisterRouterEC2(router *mux.Router) {
 	router.HandleFunc("/system", routerGetEC2System)
 	router.HandleFunc("/network", routerGetEC2Network)
 	router.HandleFunc("/credentials", routerGetEC2Credentials)
+	router.HandleFunc("/dynamicinstanceidentity/{category}", routerGetEC2DynamicInstanceIdentity)
 }

@@ -408,6 +408,71 @@ func fetchIdentityCredentialsFromCloudMetadata() {
 	}
 }
 
+func displayDynamicInstanceIdentityDocument(c *ec2.Document) {
+	fmt.Printf("              Accountid: %+v\n", c.Accountid)
+	fmt.Printf("           Architecture: %+v\n", c.Architecture)
+	fmt.Printf("       Availabilityzone: %+v\n", c.Availabilityzone)
+
+	if len(c.Billingproducts) > 0 {
+		fmt.Printf("        Billingproducts: %+v\n", c.Billingproducts)
+	}
+	fmt.Printf("                Imageid: %+v\n", c.Imageid)
+	fmt.Printf("             Instanceid: %+v\n", c.Instanceid)
+	fmt.Printf("           Instancetype: %+v\n", c.Instancetype)
+	if len(c.Kernelid) > 0 {
+		fmt.Printf("               Kernelid: %+v\n", c.Kernelid)
+	}
+	if len(c.Marketplaceproductcodes) > 0 {
+		fmt.Printf("Marketplaceproductcodes: %+v\n", c.Marketplaceproductcodes)
+	}
+	fmt.Printf("            Pendingtime: %+v\n", c.Pendingtime)
+	fmt.Printf("              Privateip: %+v\n", c.Privateip)
+	if len(c.Ramdiskid) > 0 {
+		fmt.Printf("              Ramdiskid: %+v\n", c.Ramdiskid)
+	}
+	fmt.Printf("                 Region: %+v\n", c.Region)
+	fmt.Printf("                Version: %+v\n", c.Version)
+}
+
+func fetchDynamicInstanceIdentityFromCloudMetadata(s string) {
+	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/dynamicinstanceidentity/" + s)
+	if err != nil {
+		return
+	}
+
+	provider, err := whatsthis.Cloud()
+	switch provider.Name {
+	case cloudprovider.AWS:
+
+		switch s {
+		case "document":
+			var c ec2.Document
+
+			json.Unmarshal(resp, &c)
+			displayDynamicInstanceIdentityDocument(&c)
+		case "pkcs7":
+			var c string
+
+			json.Unmarshal(resp, &c)
+			fmt.Println(c)
+		case "signature":
+			var c string
+
+			json.Unmarshal(resp, &c)
+			fmt.Println(c)
+		case "rsa2048":
+			var c string
+
+			json.Unmarshal(resp, &c)
+			fmt.Println(c)
+		default:
+		}
+	default:
+		fmt.Printf("unsupported: '%+v'", err)
+		return
+	}
+}
+
 func main() {
 	conf.Parse()
 	log.SetOutput(ioutil.Discard)
@@ -466,6 +531,42 @@ func main() {
 					Usage:   "Display EC2 data identity credentials",
 					Action: func(c *cli.Context) error {
 						fetchIdentityCredentialsFromCloudMetadata()
+						return nil
+					},
+				},
+				{
+					Name:    "document",
+					Aliases: []string{"d"},
+					Usage:   "Display EC2 data identity credentials document",
+					Action: func(c *cli.Context) error {
+						fetchDynamicInstanceIdentityFromCloudMetadata("document")
+						return nil
+					},
+				},
+				{
+					Name:    "pkcs7",
+					Aliases: []string{"p"},
+					Usage:   "Display EC2 data identity credentials pkcs7",
+					Action: func(c *cli.Context) error {
+						fetchDynamicInstanceIdentityFromCloudMetadata("pkcs7")
+						return nil
+					},
+				},
+				{
+					Name:    "signature",
+					Aliases: []string{"s"},
+					Usage:   "Display EC2 data identity credentials signature",
+					Action: func(c *cli.Context) error {
+						fetchDynamicInstanceIdentityFromCloudMetadata("signature")
+						return nil
+					},
+				},
+				{
+					Name:    "rsa2048",
+					Aliases: []string{"r"},
+					Usage:   "Display EC2 data identity credentials rsa2048",
+					Action: func(c *cli.Context) error {
+						fetchDynamicInstanceIdentityFromCloudMetadata("rsa2048")
 						return nil
 					},
 				},
