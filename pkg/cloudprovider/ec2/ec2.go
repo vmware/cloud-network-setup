@@ -14,11 +14,12 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -30,7 +31,19 @@ const (
 
 	//EC2 Metadata mac URL Base
 	EC2MetaDataNetwork string = "network/interfaces/macs/"
+
+	EC2MetaDataIdentityCredentials string = "identity-credentials/ec2/security-credentials/ec2-instance/"
 )
+
+type Credentials struct {
+	Code            string `json:"Code"`
+	Lastupdated     string `json:"LastUpdated"`
+	Type            string `json:"Type"`
+	Accesskeyid     string `json:"AccessKeyId"`
+	Secretaccesskey string `json:"SecretAccessKey"`
+	Token           string `json:"Token"`
+	Expiration      string `json:"Expiration"`
+}
 
 type MAC struct {
 	DeviceNumber     string `json:"device-number"`
@@ -99,7 +112,6 @@ type EC2 struct {
 	PublicHostname string `json:"public-hostname"`
 	PublicIpv4     string `json:"public-ipv4"`
 	PublicKeys     struct {
-		ZeroSusant string `json:"0=Susant"`
 	} `json:"public-keys"`
 	ReservationID  string `json:"reservation-id"`
 	SecurityGroups string `json:"security-groups"`
@@ -110,9 +122,10 @@ type EC2 struct {
 }
 
 type EC2Data struct {
-	system  EC2MetaData
-	network EC2MetaData
-	macs    map[string]EC2MetaData
+	system      EC2MetaData
+	network     EC2MetaData
+	credentials EC2MetaData
+	macs        map[string]EC2MetaData
 }
 
 type EC2MetaData interface{}
@@ -152,16 +165,18 @@ func fetchCloudMetadataByURL(url string) []string {
 
 func fetchCloudMetadataLoop(url string) EC2MetaData {
 	m := make(map[string]interface{})
+
 	data := fetchCloudMetadataByURL(url)
 	for _, line := range data {
 		switch {
-		default:
-			m[line] = fetchCloudMetadataByURL(url + line)[0]
 		case strings.HasSuffix(line, "/"):
 			m[line[:len(line)-1]] = fetchCloudMetadataLoop(url + line)
 		case strings.HasSuffix(url, "public-keys/"):
+			fmt.Println(url)
 			keyId := strings.SplitN(line, "=", 2)[0]
 			m[line] = fetchCloudMetadataByURL(url + keyId + "/openssh-key")[0]
+		default:
+			m[line] = fetchCloudMetadataByURL(url + line)[0]
 		}
 	}
 
@@ -185,8 +200,26 @@ func fetchMACAddresses(url string) ([]string, error) {
 	}
 
 	s := strings.Replace(string(raw), "/\n", " ", -1)
-
 	return strings.Fields(strings.TrimRight(s, "/")), nil
+}
+
+func fetchIdentityCredentials(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, errors.New("unexpected response when fetching instance credentials")
+	}
+	defer resp.Body.Close()
+
+	raw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return raw, nil
 }
 
 func FetchCloudMetadata(m *cloud.CloudManager) error {
@@ -195,13 +228,22 @@ func FetchCloudMetadata(m *cloud.CloudManager) error {
 		return err
 	}
 
+	c, err := fetchIdentityCredentials("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials)
+	if err != nil {
+		return err
+	}
+
 	s := fetchCloudMetadataLoop("http://" + EC2Endpoint + EC2MetaDataURLBase)
 	n := fetchCloudMetadataLoop("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataNetwork)
 
+	var cred Credentials
+	json.Unmarshal(c, &cred)
+
 	d := EC2Data{
-		system:  s,
-		network: n,
-		macs:    make(map[string]EC2MetaData),
+		system:      s,
+		network:     n,
+		credentials: cred,
+		macs:        make(map[string]EC2MetaData),
 	}
 
 	for _, t := range macs {
@@ -324,7 +366,19 @@ func routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
+	d := cloud.GetConext().MetaData
+	ec2 := d.(EC2Data)
+
+	switch r.Method {
+	case "GET":
+		utils.JSONResponse(ec2.credentials, rw)
+	default:
+	}
+}
+
 func RegisterRouterEC2(router *mux.Router) {
 	router.HandleFunc("/system", routerGetEC2System)
 	router.HandleFunc("/network", routerGetEC2Network)
+	router.HandleFunc("/credentials", routerGetEC2Credentials)
 }
