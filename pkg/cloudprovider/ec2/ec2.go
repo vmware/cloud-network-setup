@@ -404,30 +404,30 @@ func SaveCloudMetadata(m *cloud.CloudManager) error {
 func SaveCloudMetadataIdentityCredentials(m *cloud.CloudManager) error {
 	c := m.MetaData.(EC2Data)
 
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/credentials", c.credentials)
+	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/credentials", c.credentials)
 	if err != nil {
 		log.Errorf("Failed to save instance credentials metadata 'credentials': %+v", err)
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/document", c.document)
+	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/document", c.document)
 	if err != nil {
 		log.Errorf("Failed to save instance identity metadata 'document': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/pkcs7", c.pkcs7)
+	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/pkcs7", c.pkcs7)
 	if err != nil {
 		log.Errorf("Failed to save instance identity metadata 'pkcs7': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/signature", c.signature)
+	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/signature", c.signature)
 	if err != nil {
 		log.Errorf("Failed to save instance identity metadata 'signature': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/rsa2048", c.rsa2048)
+	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/rsa2048", c.rsa2048)
 	if err != nil {
 		log.Errorf("Failed to save instance identity metadata 'rsa2048': %+v", err)
 		return err

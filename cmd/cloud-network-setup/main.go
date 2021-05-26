@@ -46,7 +46,17 @@ func retriveMetaDataAndConfigure(c *cloud.CloudManager) error {
 	return nil
 }
 
-func createLinkStateFiles() error {
+func createStateDirsAndFiles(provider string) error {
+	err := os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
+	if err != nil {
+		log.Errorf("Failed create run dir '/run/cloud-network-setup/links': '%+v'", err)
+	}
+
+	err = utils.CreateStatefile("/run/cloud-network-setup/system")
+	if err != nil {
+		log.Errorf("Failed create state file '/run/cloud-network-setup/system': '%+v'", err)
+	}
+
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
@@ -60,34 +70,34 @@ func createLinkStateFiles() error {
 		}
 	}
 
+	switch provider {
+	case cloudprovider.AWS:
+		err := os.MkdirAll("/run/cloud-network-setup/provider/ec2", os.ModePerm)
+		if err != nil {
+			log.Errorf("Failed create run dir '/run/cloud-network-setup/ec2': '%+v'", err)
+			return err
+		}
+	default:
+	}
+
 	return nil
 }
 
 func main() {
-	log.Infof("cloud-network-setup: v%s (built %s)", conf.Version, runtime.Version())
+	log.Infof("cloud-network-setup: v%+v (built '%+v')", conf.Version, runtime.Version())
 
 	c, err := conf.Parse()
 	if err != nil {
 		log.Errorf("Failed to parse conf file '%+v': %+v", conf.ConfFile, err)
 	}
 
-	err = os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
-	if err != nil {
-		log.Errorf("Failed create run dir '/run/cloud-network-setup/links': '%+v'", err)
-	}
-
-	err = utils.CreateStatefile("/run/cloud-network-setup/system")
-	if err != nil {
-		log.Errorf("Failed create state file '/run/cloud-network-setup/system': '%+v'", err)
-	}
-
-	createLinkStateFiles()
-
 	m, err := cloud.NewCloudManager()
 	if err != nil {
 		log.Errorf("Failed initialize Cloud Manager: '%+v'", err)
 		os.Exit(1)
 	}
+
+	createStateDirsAndFiles(m.CloudProvider)
 
 	log.Infof("Detected cloud enviroment: '%+v'", m.CloudProvider)
 
@@ -103,7 +113,7 @@ func main() {
 			<-tick
 			err = retriveMetaDataAndConfigure(m)
 			if err != nil {
-				log.Errorf("Failed to refresh instance metadata from endpoint '%s': %+v ", m.CloudProvider, err)
+				log.Errorf("Failed to refresh instance metadata from endpoint '%v': %+v ", m.CloudProvider, err)
 			}
 		}
 	}()
@@ -136,6 +146,6 @@ func main() {
 		}
 	}()
 
-	log.Infof("Local Instance Metadata Cache Server listening at '%s':'%s'", c.Address, c.Port)
+	log.Infof("Local Instance Metadata Cache Server listening at '%+v':'%+v'", c.Address, c.Port)
 	log.Info(srv.ListenAndServe())
 }
