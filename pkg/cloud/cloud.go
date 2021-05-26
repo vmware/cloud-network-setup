@@ -5,7 +5,6 @@ package cloud
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/powersj/whatsthis"
 )
@@ -22,7 +21,7 @@ func NewCloudManager() (*CloudManager, error) {
 	if err != nil || len(c.Name) <= 0 {
 		return nil, errors.New("unknown cloud enviroment")
 	}
-	fmt.Println(err)
+
 	m := &CloudManager{
 		CloudProvider: c.Name,
 	}

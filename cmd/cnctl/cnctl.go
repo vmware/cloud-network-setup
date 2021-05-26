@@ -448,21 +448,27 @@ func main() {
 			},
 		},
 		{
-			Name:    "ssh-keys",
-			Aliases: []string{"k"},
-			Usage:   "Display SSH keys",
-			Action: func(c *cli.Context) error {
-				fetchSSHKeysFromCloudMetadata()
-				return nil
-			},
-		},
-		{
-			Name:    "credentials",
-			Aliases: []string{"k"},
-			Usage:   "Display EC2 data identity credentials",
-			Action: func(c *cli.Context) error {
-				fetchIdentityCredentialsFromCloudMetadata()
-				return nil
+			Name:  "show",
+			Usage: "Display credentials",
+			Subcommands: []*cli.Command{
+				{
+					Name:    "ssh-keys",
+					Aliases: []string{"k"},
+					Usage:   "Display Display SSH key",
+					Action: func(c *cli.Context) error {
+						fetchSSHKeysFromCloudMetadata()
+						return nil
+					},
+				},
+				{
+					Name:    "credentials",
+					Aliases: []string{"c"},
+					Usage:   "Display EC2 data identity credentials",
+					Action: func(c *cli.Context) error {
+						fetchIdentityCredentialsFromCloudMetadata()
+						return nil
+					},
+				},
 			},
 		},
 	}
