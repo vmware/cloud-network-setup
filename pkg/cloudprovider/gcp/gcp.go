@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"os"
 	"path"
 	"reflect"
 	"strconv"
@@ -218,17 +217,13 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 }
 
 func SaveCloudMetadata(m *cloud.CloudManager) error {
-	f, err := os.OpenFile("/run/cloud-network-setup/system", os.O_RDWR, 0644)
+	s := m.MetaData.(GCP)
+
+	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", s)
 	if err != nil {
-		log.Errorf("Failed to open system file '/run/cloud-network-setup/system': %+v", err)
+		log.Errorf("Failed to write system file: %+v", err)
 		return err
 	}
-	defer f.Close()
-
-	k := m.MetaData.(GCP)
-
-	d, _ := json.MarshalIndent(k, "", " ")
-	f.Write(d)
 
 	return nil
 }
@@ -247,19 +242,12 @@ func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 			continue
 		}
 
-		s := strconv.Itoa(l.Ifindex)
-		file := path.Join("/run/cloud-network-setup/links", s)
-		f, err := os.OpenFile(file, os.O_RDWR, 0644)
+		link := d.Instance.Networkinterfaces[i]
+		err = utils.CreateAndSaveJSON(path.Join("/run/cloud-network-setup/links", strconv.Itoa(l.Ifindex)), link)
 		if err != nil {
-			log.Errorf("Failed to open state file for link file '%+v': %+v", file, err)
+			log.Errorf("Failed to write link state file link='%+v': %+v", l.Name, err)
 			return err
 		}
-		defer f.Close()
-
-		link := d.Instance.Networkinterfaces[i]
-
-		d, _ := json.MarshalIndent(link, "", " ")
-		f.Write(d)
 	}
 
 	return nil

@@ -390,9 +390,9 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 }
 
 func SaveCloudMetadata(m *cloud.CloudManager) error {
-	k := m.MetaData.(EC2Data)
+	s := m.MetaData.(EC2Data)
 
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", k.system)
+	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", s.system)
 	if err != nil {
 		log.Errorf("Failed to write system file: %+v", err)
 		return err
