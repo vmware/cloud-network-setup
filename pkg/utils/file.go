@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -48,6 +49,19 @@ func CreateLinkStatefile(path string, index int) error {
 	}
 
 	defer f.Close()
+
+	return nil
+}
+
+func CreateAndSaveJSON(path string, content interface{}) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	d, _ := json.MarshalIndent(content, "", " ")
+	f.Write(d)
 
 	return nil
 }
