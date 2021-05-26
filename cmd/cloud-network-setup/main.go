@@ -85,7 +85,7 @@ func main() {
 
 	m, err := cloud.NewCloudManager()
 	if err != nil {
-		log.Errorf("Failed initialize Cloud Manager: '%+v'")
+		log.Errorf("Failed initialize Cloud Manager: '%+v'", err)
 		os.Exit(1)
 	}
 
@@ -109,6 +109,7 @@ func main() {
 	}()
 
 	router := router.NewRouter()
+
 	srv := http.Server{
 		Addr:    net.JoinHostPort(c.Address, c.Port),
 		Handler: router,

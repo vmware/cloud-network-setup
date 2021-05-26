@@ -8,10 +8,11 @@ import (
 	"flag"
 	"time"
 
-	"github.com/cloud-network-setup/pkg/utils"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/cloud-network-setup/pkg/utils"
 )
 
 // App Version
@@ -68,7 +69,7 @@ func init() {
 // SetLogLevel: Set log level
 func SetLogLevel(level string) error {
 	if len(level) <= 0 {
-		return errors.New("Failed to parse log level")
+		return errors.New("failed to parse log level")
 	}
 
 	l, err := logrus.ParseLevel(level)
@@ -85,7 +86,7 @@ func SetLogLevel(level string) error {
 // SetLogFormat: Sets log format
 func SetLogFormat(format string) error {
 	if len(format) <= 0 {
-		return errors.New("Failed to parse log format")
+		return errors.New("failed to parse log format")
 	}
 
 	switch format {
@@ -94,14 +95,13 @@ func SetLogFormat(format string) error {
 			DisableTimestamp: true,
 		})
 
-		break
 	case "text":
 		log.SetFormatter(&logrus.TextFormatter{
 			DisableTimestamp: true,
 		})
 
 	default:
-		return errors.New("Unsupported")
+		return errors.New("unsupported")
 	}
 
 	return nil
@@ -115,7 +115,10 @@ func Parse() (*Config, error) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Warningf("Faild to parse config file: '%+v'", err)
+		log.Warningf("Faild to parse config file. Using defaults: '%+v'", err)
+
+		flag.Parse()
+
 		return nil, err
 	}
 

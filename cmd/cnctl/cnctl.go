@@ -386,7 +386,6 @@ func displayIdentityCredentialsFromMetadata(c *ec2.Credentials) {
 	fmt.Printf("           Code: %+v\n", c.Code)
 	fmt.Printf("Secretaccesskey: %+v\n", c.Secretaccesskey)
 	fmt.Printf("          Token: %+v\n", c.Token)
-
 }
 
 func fetchIdentityCredentialsFromCloudMetadata() {

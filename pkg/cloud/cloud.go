@@ -3,9 +3,13 @@
 
 package cloud
 
-import "github.com/powersj/whatsthis"
+import (
+	"errors"
+	"fmt"
 
-// CloudManager Conext
+	"github.com/powersj/whatsthis"
+)
+
 type CloudManager struct {
 	CloudProvider string
 	MetaData      interface{}
@@ -13,13 +17,12 @@ type CloudManager struct {
 
 var CM *CloudManager
 
-// NewCloudManager Constructor
 func NewCloudManager() (*CloudManager, error) {
 	c, err := whatsthis.Cloud()
-	if err != nil {
-		return nil, err
+	if err != nil || len(c.Name) <= 0 {
+		return nil, errors.New("unknown cloud enviroment")
 	}
-
+	fmt.Println(err)
 	m := &CloudManager{
 		CloudProvider: c.Name,
 	}
@@ -28,7 +31,6 @@ func NewCloudManager() (*CloudManager, error) {
 	return m, nil
 }
 
-// GetConext vcloud manager
 func GetConext() (c *CloudManager) {
 	return CM
 }
