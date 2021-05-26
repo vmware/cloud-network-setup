@@ -28,7 +28,6 @@ const (
 	GCP string = "gcp"
 )
 
-// AcquireCloudMetadata - Retrive cloud metadata.
 func AcquireCloudMetadata(c *cloud.CloudManager) error {
 	return fetchCloudMetadata(c)
 }
@@ -55,7 +54,6 @@ func fetchCloudMetadata(m *cloud.CloudManager) error {
 	return nil
 }
 
-// ConfigureNetworkMetadata configures network metadata
 func ConfigureNetworkMetadata(m *cloud.CloudManager) error {
 	switch m.CloudProvider {
 	case Azure:
@@ -69,7 +67,6 @@ func ConfigureNetworkMetadata(m *cloud.CloudManager) error {
 	}
 }
 
-// SaveMetaData Saves cloud metadata ro /run
 func SaveMetaData(m *cloud.CloudManager) error {
 	var err error
 
@@ -81,6 +78,21 @@ func SaveMetaData(m *cloud.CloudManager) error {
 		}
 
 		err = azure.LinkSaveCloudMetadata(m)
+		if err != nil {
+			return err
+		}
+	case AWS:
+		err = ec2.SaveCloudMetadata(m)
+		if err != nil {
+			return err
+		}
+
+		err = ec2.SaveCloudMetadataIdentityCredentials(m)
+		if err != nil {
+			return err
+		}
+
+		err = ec2.LinkSaveCloudMetadata(m)
 		if err != nil {
 			return err
 		}
@@ -101,7 +113,6 @@ func SaveMetaData(m *cloud.CloudManager) error {
 	return nil
 }
 
-// RegisterRouterCloud regiser with mux
 func RegisterRouterCloud(router *mux.Router) {
 	n := router.PathPrefix("/cloud").Subrouter()
 

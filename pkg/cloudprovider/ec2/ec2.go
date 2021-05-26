@@ -11,7 +11,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -81,15 +84,7 @@ type EC2 struct {
 			Scheduled string `json:"scheduled"`
 		} `json:"maintenance"`
 	} `json:"events"`
-	Hostname            string `json:"hostname"`
-	IdentityCredentials struct {
-		Ec2 struct {
-			Info                string `json:"info"`
-			SecurityCredentials struct {
-				Ec2Instance string `json:"ec2-instance"`
-			} `json:"security-credentials"`
-		} `json:"ec2"`
-	} `json:"identity-credentials"`
+	Hostname          string `json:"hostname"`
 	InstanceAction    string `json:"instance-action"`
 	InstanceID        string `json:"instance-id"`
 	InstanceLifeCycle string `json:"instance-life-cycle"`
@@ -339,6 +334,76 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
 			}
 		}
+	}
+
+	return nil
+}
+
+func SaveCloudMetadata(m *cloud.CloudManager) error {
+	f, err := os.OpenFile("/run/cloud-network-setup/system", os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		log.Errorf("Failed to open system file '/run/cloud-network-setup/system': %+v", err)
+		return err
+	}
+	defer f.Close()
+
+	k := m.MetaData.(EC2Data)
+	d, _ := json.MarshalIndent(k.system, "", " ")
+	f.Write(d)
+
+	return nil
+}
+
+func SaveCloudMetadataIdentityCredentials(m *cloud.CloudManager) error {
+	f, err := os.OpenFile("/run/cloud-network-setup/credentials", os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		log.Errorf("Failed to open system file '/run/cloud-network-setup/credentials': %+v", err)
+		return err
+	}
+	defer f.Close()
+
+	c := m.MetaData.(EC2Data)
+
+	d, _ := json.MarshalIndent(c.credentials, "", " ")
+	f.Write(d)
+
+	return nil
+}
+
+func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
+	d := m.MetaData.(EC2Data)
+
+	links, err := network.AcquireLinks()
+	if err != nil {
+		return err
+	}
+
+	for k, v := range d.macs {
+		j, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+
+		n := MAC{}
+		json.Unmarshal([]byte(j), &n)
+
+		l, ok := links.LinksByMAC[k]
+		if !ok {
+			log.Errorf("Failed to find link having MAC Address='%+v': %+v", k, err)
+			continue
+		}
+
+		s := strconv.Itoa(l.Ifindex)
+		file := path.Join("/run/cloud-network-setup/links", s)
+		f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE, 0755)
+		if err != nil {
+			log.Errorf("Failed to open state file for link file '%+v': %+v", file, err)
+			return err
+		}
+		defer f.Close()
+
+		d, _ := json.MarshalIndent(n, "", " ")
+		f.Write(d)
 	}
 
 	return nil

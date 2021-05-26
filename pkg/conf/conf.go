@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/cloud-network-setup/pkg/utils"
@@ -66,7 +65,6 @@ func init() {
 	flag.Uint64("refreshtimer", defaultRefreshTimer, "Default metadata refresh timer.")
 }
 
-// SetLogLevel: Set log level
 func SetLogLevel(level string) error {
 	if len(level) <= 0 {
 		return errors.New("failed to parse log level")
@@ -83,7 +81,6 @@ func SetLogLevel(level string) error {
 	return nil
 }
 
-// SetLogFormat: Sets log format
 func SetLogFormat(format string) error {
 	if len(format) <= 0 {
 		return errors.New("failed to parse log format")
@@ -91,12 +88,12 @@ func SetLogFormat(format string) error {
 
 	switch format {
 	case "json":
-		log.SetFormatter(&logrus.JSONFormatter{
+		logrus.SetFormatter(&logrus.JSONFormatter{
 			DisableTimestamp: true,
 		})
 
 	case "text":
-		log.SetFormatter(&logrus.TextFormatter{
+		logrus.SetFormatter(&logrus.TextFormatter{
 			DisableTimestamp: true,
 		})
 
@@ -115,7 +112,7 @@ func Parse() (*Config, error) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Warningf("Faild to parse config file. Using defaults: '%+v'", err)
+		logrus.Warningf("Faild to parse config file. Using defaults: '%+v'", err)
 
 		flag.Parse()
 
@@ -124,25 +121,25 @@ func Parse() (*Config, error) {
 
 	err = viper.Unmarshal(&conf)
 	if err != nil {
-		log.Warningf("Failed to decode configuration: '%+v'", err)
+		logrus.Warningf("Failed to decode configuration: '%+v'", err)
 		return nil, err
 	}
 
 	_, err = utils.ParseIP(conf.Network.Address)
 	if err != nil {
-		log.Warningf("Failed to parse Address='%+v' ort='%+v'", conf.Network.Address, conf.Network.Port)
+		logrus.Warningf("Failed to parse Address='%+v' ort='%+v'", conf.Network.Address, conf.Network.Port)
 		IPFlag = conf.Network.Address
 	}
 
 	_, err = utils.ParsePort(conf.Network.Port)
 	if err != nil {
-		log.Warningf("Failed to parse Port='%+v'", conf.Network.Port)
+		logrus.Warningf("Failed to parse Port='%+v'", conf.Network.Port)
 		PortFlag = conf.Network.Port
 	}
 
 	t, err := time.ParseDuration(conf.System.RefreshTimer)
 	if err != nil {
-		log.Warningf("Failed to parse RefreshTimer='%+v'", conf.System.RefreshTimer)
+		logrus.Warningf("Failed to parse RefreshTimer='%+v'", conf.System.RefreshTimer)
 	} else {
 		RefreshTimerFlag = t
 	}
@@ -153,25 +150,25 @@ func Parse() (*Config, error) {
 	if err != nil {
 		err = SetLogLevel(conf.System.LogLevel)
 		if err != nil {
-			log.Warningf("Failed to parse LogLevel='%+v'", conf.System.LogLevel)
+			logrus.Warningf("Failed to parse LogLevel='%+v'", conf.System.LogLevel)
 		} else {
 			LogLevelFlag = conf.System.LogLevel
 		}
 	}
 
-	log.Debugf("Log level set to '%+v'", log.GetLevel().String())
+	logrus.Debugf("Log level set to '%+v'", logrus.GetLevel().String())
 
 	err = SetLogFormat(viper.GetString("CLOUD_NETWORK_LOG_FORMAT"))
 	if err != nil {
 		err = SetLogFormat(conf.System.LogFormat)
 		if err != nil {
-			log.Warningf("Failed to parse LogFormat='%+v'", conf.System.LogFormat)
+			logrus.Warningf("Failed to parse LogFormat='%+v'", conf.System.LogFormat)
 		} else {
 			LogFormatFlag = conf.System.LogFormat
 		}
 	}
 
-	log.Debugf("Successfully parsed Address='%+v' and Port='%+v'", conf.Network.Address, conf.Network.Port)
+	logrus.Debugf("Successfully parsed Address='%+v' and Port='%+v'", conf.Network.Address, conf.Network.Port)
 
 	return &conf, nil
 }
