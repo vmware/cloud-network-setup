@@ -34,7 +34,7 @@ Specifies the log format. Takes one of text or json. Takes one of `text` or `jso
 
 `RefreshTimer=`
 
-Specifies the time interval,  is the amount of time taken to retrive the data from metadata endpoint.
+Specifies the time interval, is the amount of time taken to retrive the data from metadata endpoint.
 
 The `[Network]` section takes following Keys:
 
@@ -81,7 +81,7 @@ May 17 21:49:59 Zeus systemd[1]: cloud-network-setup.service: Got notification m
 #### cnctl
 ----
 
-`cnctl` is a CLI tool allows to view metadata, which is retirved from the endpoint metadata server
+`cnctl` is a CLI tool allows to view metadata, which is retirved from the endpoint metadata server.
 
 ```bash
 ❯ cnctl status network
