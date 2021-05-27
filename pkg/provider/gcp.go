@@ -1,7 +1,7 @@
 // Copyright 2021 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-package gcp
+package provider
 
 import (
 	"encoding/json"
@@ -15,7 +15,6 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
 )
@@ -28,8 +27,11 @@ const (
 	GCPMetadtaURLBase string = "/computeMetadata/v1/?recursive=true"
 )
 
-// GCP compute metadata
 type GCP struct {
+	meta GCPMetaData
+}
+
+type GCPMetaData struct {
 	Instance struct {
 		Attributes struct {
 		} `json:"attributes"`
@@ -113,7 +115,11 @@ type GCP struct {
 	} `json:"project"`
 }
 
-func FetchCloudMetadata(m *cloud.CloudManager) error {
+func NewGCP() *GCP {
+	return &GCP{}
+}
+
+func (g *GCP) FetchCloudMetadata() error {
 	client := resty.New()
 	client.SetHeader("Metadata-Flavor", "Google")
 
@@ -123,27 +129,24 @@ func FetchCloudMetadata(m *cloud.CloudManager) error {
 		return err
 	}
 
-	d := GCP{}
-	json.Unmarshal(resp.Body(), &d)
-	m.MetaData = d
-
+	json.Unmarshal(resp.Body(), &g.meta)
 	return nil
 }
 
-func parseIpv4AddressesFromMetadataByMac(mac string, g *GCP) (map[string]bool, error) {
+func (g *GCP) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, error) {
 	m := make(map[string]bool)
 
-	for i := 0; i < len(g.Instance.Networkinterfaces); i++ {
-		if mac == g.Instance.Networkinterfaces[i].Mac {
-			ip := g.Instance.Networkinterfaces[i].IP
-			mask := net.IPMask(net.ParseIP(g.Instance.Networkinterfaces[i].Subnetmask).To4())
+	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+		if mac == g.meta.Instance.Networkinterfaces[i].Mac {
+			ip := g.meta.Instance.Networkinterfaces[i].IP
+			mask := net.IPMask(net.ParseIP(g.meta.Instance.Networkinterfaces[i].Subnetmask).To4())
 			prefix, _ := mask.Size()
 			k := strconv.Itoa(prefix)
 
 			a := ip + "/" + k
 			m[a] = true
 
-			for _, w := range g.Instance.Networkinterfaces[i].Ipaliases {
+			for _, w := range g.meta.Instance.Networkinterfaces[i].Ipaliases {
 				m[w] = true
 			}
 		}
@@ -152,18 +155,16 @@ func parseIpv4AddressesFromMetadataByMac(mac string, g *GCP) (map[string]bool, e
 	return m, nil
 }
 
-func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
-	g := m.MetaData.(GCP)
-
+func (g *GCP) ConfigureCloudMetadataAddress() error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < len(g.Instance.Networkinterfaces); i++ {
-		l, ok := links.LinksByMAC[g.Instance.Networkinterfaces[i].Mac]
+	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+		l, ok := links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !ok {
-			log.Errorf("Failed to find link having MAC Address='%+v'", g.Instance.Networkinterfaces[i].Mac)
+			log.Errorf("Failed to find link having MAC Address='%+v'", g.meta.Instance.Networkinterfaces[i].Mac)
 			continue
 		}
 
@@ -173,7 +174,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 			continue
 		}
 
-		newAddresses, err := parseIpv4AddressesFromMetadataByMac(g.Instance.Networkinterfaces[i].Mac, &g)
+		newAddresses, err := g.parseIpv4AddressesFromMetadataByMac(g.meta.Instance.Networkinterfaces[i].Mac)
 		if err != nil {
 			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
 			continue
@@ -216,10 +217,8 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	return nil
 }
 
-func SaveCloudMetadata(m *cloud.CloudManager) error {
-	s := m.MetaData.(GCP)
-
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", s)
+func (g *GCP) SaveCloudMetadata() error {
+	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", g.meta)
 	if err != nil {
 		log.Errorf("Failed to write system file: %+v", err)
 		return err
@@ -228,21 +227,19 @@ func SaveCloudMetadata(m *cloud.CloudManager) error {
 	return nil
 }
 
-func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
-	d := m.MetaData.(GCP)
-
+func (g *GCP) LinkSaveCloudMetadata() error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < len(d.Instance.Networkinterfaces); i++ {
-		l, b := links.LinksByMAC[d.Instance.Networkinterfaces[i].Mac]
+	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+		l, b := links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !b {
 			continue
 		}
 
-		link := d.Instance.Networkinterfaces[i]
+		link := g.meta.Instance.Networkinterfaces[i]
 		err = utils.CreateAndSaveJSON(path.Join("/run/cloud-network-setup/links", strconv.Itoa(l.Ifindex)), link)
 		if err != nil {
 			log.Errorf("Failed to write link state file link='%+v': %+v", l.Name, err)
@@ -254,11 +251,9 @@ func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 }
 
 func routerGetGCP(rw http.ResponseWriter, r *http.Request) {
-	m := cloud.GetConext().MetaData.(GCP)
-
 	switch r.Method {
 	case "GET":
-		utils.JSONResponse(m, rw)
+		utils.JSONResponse(GetConext().gcp.meta, rw)
 	default:
 	}
 }

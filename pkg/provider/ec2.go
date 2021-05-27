@@ -1,7 +1,7 @@
 // Copyright 2021 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-package ec2
+package provider
 
 import (
 	"bufio"
@@ -19,7 +19,6 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
 )
@@ -38,7 +37,7 @@ const (
 	EC2MetaDataDynamicIdentityDocument string = "/latest/dynamic/instance-identity/"
 )
 
-type Document struct {
+type EC2Document struct {
 	Accountid               string   `json:"accountId"`
 	Architecture            string   `json:"architecture"`
 	Availabilityzone        string   `json:"availabilityZone"`
@@ -56,7 +55,7 @@ type Document struct {
 	Version                 string   `json:"version"`
 }
 
-type Credentials struct {
+type EC2Credentials struct {
 	Code            string `json:"Code"`
 	Lastupdated     string `json:"LastUpdated"`
 	Type            string `json:"Type"`
@@ -66,7 +65,7 @@ type Credentials struct {
 	Expiration      string `json:"Expiration"`
 }
 
-type MAC struct {
+type EC2MAC struct {
 	DeviceNumber     string `json:"device-number"`
 	InterfaceID      string `json:"interface-id"`
 	Ipv4Associations struct {
@@ -88,7 +87,7 @@ type MAC struct {
 	VpcIpv4CidrBlocks   string `json:"vpc-ipv4-cidr-blocks"`
 }
 
-type EC2 struct {
+type EC2System struct {
 	AmiID              string `json:"ami-id"`
 	AmiLaunchIndex     string `json:"ami-launch-index"`
 	AmiManifestPath    string `json:"ami-manifest-path"`
@@ -134,19 +133,21 @@ type EC2 struct {
 	} `json:"services"`
 }
 
-type EC2Data struct {
-	system      EC2MetaData
-	network     EC2MetaData
-	credentials EC2MetaData
-	document    EC2MetaData
-	pkcs7       EC2MetaData
-	signature   EC2MetaData
-	rsa2048     EC2MetaData
+type EC2 struct {
+	system      map[string]interface{}
+	network     map[string]interface{}
+	credentials EC2Credentials
+	document    EC2Document
+	pkcs7       string
+	signature   string
+	rsa2048     string
 
-	macs map[string]EC2MetaData
+	macs map[string]interface{}
 }
 
-type EC2MetaData interface{}
+func NewEC2() *EC2 {
+	return &EC2{}
+}
 
 func fetchCloudMetadataByURL(url string) []string {
 	resp, err := http.Get(url)
@@ -181,7 +182,7 @@ func fetchCloudMetadataByURL(url string) []string {
 	}
 }
 
-func fetchCloudMetadataLoop(url string) EC2MetaData {
+func fetchCloudMetadataLoop(url string) map[string]interface{} {
 	m := make(map[string]interface{})
 
 	data := fetchCloudMetadataByURL(url)
@@ -240,7 +241,7 @@ func fetchMetadata(url string) ([]byte, error) {
 	return raw, nil
 }
 
-func FetchCloudMetadata(m *cloud.CloudManager) error {
+func (ec2 *EC2) FetchCloudMetadata() error {
 	macs, err := fetchMACAddresses("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataNetwork)
 	if err != nil {
 		return err
@@ -274,22 +275,20 @@ func FetchCloudMetadata(m *cloud.CloudManager) error {
 	s := fetchCloudMetadataLoop("http://" + EC2Endpoint + EC2MetaDataURLBase)
 	n := fetchCloudMetadataLoop("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataNetwork)
 
-	var cred Credentials
+	var cred EC2Credentials
 	json.Unmarshal(c, &cred)
 
-	var t Document
+	var t EC2Document
 	json.Unmarshal(doc, &t)
 
-	d := EC2Data{
-		system:      s,
-		network:     n,
-		credentials: cred,
-		document:    t,
-		pkcs7:       pkcs7,
-		signature:   signature,
-		rsa2048:     rsa2048,
-		macs:        make(map[string]EC2MetaData),
-	}
+	ec2.system = s
+	ec2.network = n
+	ec2.credentials = cred
+	ec2.document = t
+	ec2.pkcs7 = string(pkcs7)
+	ec2.signature = string(signature)
+	ec2.rsa2048 = string(rsa2048)
+	ec2.macs = make(map[string]interface{})
 
 	for _, t := range macs {
 		mac := fetchCloudMetadataLoop("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataNetwork + t + "/")
@@ -297,10 +296,9 @@ func FetchCloudMetadata(m *cloud.CloudManager) error {
 			return err
 		}
 
-		d.macs[t] = mac
+		ec2.macs[t] = mac
 	}
 
-	m.MetaData = d
 	return nil
 }
 
@@ -318,20 +316,19 @@ func parseIpv4AddressesFromMetadata(addresses string, cidr string) (map[string]b
 	return m, nil
 }
 
-func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
+func (ec2 *EC2) ConfigureCloudMetadataAddress() error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
 
-	d := m.MetaData.(EC2Data)
-	for k, v := range d.macs {
+	for k, v := range ec2.macs {
 		j, err := json.Marshal(v)
 		if err != nil {
 			return err
 		}
 
-		n := MAC{}
+		n := EC2MAC{}
 		json.Unmarshal([]byte(j), &n)
 
 		l, ok := links.LinksByMAC[k]
@@ -389,10 +386,8 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	return nil
 }
 
-func SaveCloudMetadata(m *cloud.CloudManager) error {
-	s := m.MetaData.(EC2Data)
-
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", s.system)
+func (ec2 *EC2) SaveCloudMetadata() error {
+	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", ec2.system)
 	if err != nil {
 		log.Errorf("Failed to write system file: %+v", err)
 		return err
@@ -401,33 +396,31 @@ func SaveCloudMetadata(m *cloud.CloudManager) error {
 	return nil
 }
 
-func SaveCloudMetadataIdentityCredentials(m *cloud.CloudManager) error {
-	c := m.MetaData.(EC2Data)
-
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/credentials", c.credentials)
+func (ec2 *EC2) SaveCloudMetadataIdentityCredentials() error {
+	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/credentials", ec2.credentials)
 	if err != nil {
 		log.Errorf("Failed to save instance credentials metadata 'credentials': %+v", err)
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/document", c.document)
+	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/document", ec2.document)
 	if err != nil {
 		log.Errorf("Failed to save instance identity metadata 'document': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/pkcs7", c.pkcs7)
+	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/pkcs7", ec2.pkcs7)
 	if err != nil {
 		log.Errorf("Failed to save instance identity metadata 'pkcs7': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/signature", c.signature)
+	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/signature", ec2.signature)
 	if err != nil {
 		log.Errorf("Failed to save instance identity metadata 'signature': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/rsa2048", c.rsa2048)
+	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/rsa2048", ec2.rsa2048)
 	if err != nil {
 		log.Errorf("Failed to save instance identity metadata 'rsa2048': %+v", err)
 		return err
@@ -436,15 +429,13 @@ func SaveCloudMetadataIdentityCredentials(m *cloud.CloudManager) error {
 	return nil
 }
 
-func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
-	d := m.MetaData.(EC2Data)
-
+func (ec2 *EC2) LinkSaveCloudMetadata() error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
 
-	for k, v := range d.macs {
+	for k, v := range ec2.macs {
 		l, ok := links.LinksByMAC[k]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%+v': %+v", k, err)
@@ -453,7 +444,7 @@ func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 
 		j, _ := json.Marshal(v)
 
-		n := MAC{}
+		n := EC2MAC{}
 		json.Unmarshal([]byte(j), &n)
 
 		file := path.Join("/run/cloud-network-setup/links", strconv.Itoa(l.Ifindex))
@@ -468,54 +459,40 @@ func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 }
 
 func routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
-	d := cloud.GetConext().MetaData
-	ec2 := d.(EC2Data)
-
 	switch r.Method {
 	case "GET":
-		utils.JSONResponse(ec2.system, rw)
+		utils.JSONResponse(GetConext().ec2.system, rw)
 	default:
 	}
 }
 
 func routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
-	d := cloud.GetConext().MetaData
-	ec2 := d.(EC2Data)
-
 	switch r.Method {
 	case "GET":
-		utils.JSONResponse(ec2.network, rw)
+		utils.JSONResponse(GetConext().ec2.network, rw)
 	default:
 	}
 }
 
 func routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
-	d := cloud.GetConext().MetaData
-	ec2 := d.(EC2Data)
-
 	switch r.Method {
 	case "GET":
-		utils.JSONResponse(ec2.credentials, rw)
+		utils.JSONResponse(GetConext().ec2.credentials, rw)
 	default:
 	}
 }
 
 func routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
-	d := cloud.GetConext().MetaData
-	ec2 := d.(EC2Data)
-
-	p := r.URL.Path
-
 	switch r.Method {
 	case "GET":
-		if strings.HasSuffix(p, "document") {
-			utils.JSONResponse(ec2.document, rw)
-		} else if strings.HasSuffix(p, "pkcs7") {
-			utils.JSONResponse(ec2.pkcs7, rw)
-		} else if strings.HasSuffix(p, "signature") {
-			utils.JSONResponse(ec2.signature, rw)
-		} else if strings.HasSuffix(p, "rsa2048") {
-			utils.JSONResponse(ec2.rsa2048, rw)
+		if strings.HasSuffix(r.URL.Path, "document") {
+			utils.JSONResponse(GetConext().ec2.document, rw)
+		} else if strings.HasSuffix(r.URL.Path, "pkcs7") {
+			utils.JSONResponse(GetConext().ec2.pkcs7, rw)
+		} else if strings.HasSuffix(r.URL.Path, "signature") {
+			utils.JSONResponse(GetConext().ec2.signature, rw)
+		} else if strings.HasSuffix(r.URL.Path, "rsa2048") {
+			utils.JSONResponse(GetConext().ec2.rsa2048, rw)
 		}
 	default:
 	}

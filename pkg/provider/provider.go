@@ -1,0 +1,141 @@
+// Copyright 2021 VMware, Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+package provider
+
+import (
+	"errors"
+
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/cloud-network-setup/pkg/cloud"
+)
+
+type Enviroment struct {
+	Kind string
+	az   *Azure
+	gcp  *GCP
+	ec2  *EC2
+}
+
+var CM *Enviroment
+
+func New(provider string) *Enviroment {
+	m := &Enviroment{
+		Kind: provider,
+	}
+
+	switch provider {
+	case cloud.Azure:
+		m.az = NewAzure()
+	case cloud.AWS:
+		m.ec2 = NewEC2()
+	case cloud.GCP:
+		m.gcp = NewGCP()
+	default:
+	}
+
+	CM = m
+	return m
+}
+
+func GetConext() (m *Enviroment) {
+	return CM
+}
+
+func AcquireCloudMetadata(m *Enviroment) error {
+	var err error
+
+	switch m.Kind {
+	case cloud.Azure:
+		err = m.az.FetchCloudMetadata()
+	case cloud.AWS:
+		err = m.ec2.FetchCloudMetadata()
+	case cloud.GCP:
+		err = m.gcp.FetchCloudMetadata()
+	default:
+		return errors.New("unknown cloud enviroment")
+	}
+
+	if err != nil {
+		log.Warningf("Failed to retrieve cloud provider '%+v' instance metadata: %+v", m.Kind, err)
+		return err
+	}
+
+	return nil
+}
+
+func ConfigureNetworkMetadata(m *Enviroment) error {
+	switch m.Kind {
+	case cloud.Azure:
+		return m.az.ConfigureCloudMetadataAddress()
+	case cloud.AWS:
+		return m.ec2.ConfigureCloudMetadataAddress()
+	case cloud.GCP:
+		return m.gcp.ConfigureCloudMetadataAddress()
+	default:
+		return errors.New("unknown cloud enviroment")
+	}
+}
+
+func SaveMetaData(m *Enviroment) error {
+	var err error
+
+	switch m.Kind {
+	case cloud.Azure:
+		err = m.az.SaveCloudMetadata()
+		if err != nil {
+			return err
+		}
+
+		err = m.az.LinkSaveCloudMetadata()
+		if err != nil {
+			return err
+		}
+	case cloud.AWS:
+		err = m.ec2.SaveCloudMetadata()
+		if err != nil {
+			return err
+		}
+
+		err = m.ec2.SaveCloudMetadataIdentityCredentials()
+		if err != nil {
+			return err
+		}
+
+		err = m.ec2.LinkSaveCloudMetadata()
+		if err != nil {
+			return err
+		}
+	case cloud.GCP:
+		err = m.gcp.SaveCloudMetadata()
+		if err != nil {
+			return err
+		}
+
+		err = m.gcp.LinkSaveCloudMetadata()
+		if err != nil {
+			return err
+		}
+	default:
+		return errors.New("unknown cloud enviroment")
+	}
+
+	return nil
+}
+
+func RegisterRouterCloud(router *mux.Router) {
+	n := router.PathPrefix("/cloud").Subrouter()
+
+	switch GetConext().Kind {
+	case cloud.Azure:
+		RegisterRouterAzure(n)
+	case cloud.AWS:
+		RegisterRouterEC2(n)
+	case cloud.GCP:
+		RegisterRouterGCP(n)
+	default:
+		return
+	}
+}

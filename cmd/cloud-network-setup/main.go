@@ -13,31 +13,31 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/okzk/sdnotify"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloud-network-setup/pkg/cloud"
-	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
-	"github.com/cloud-network-setup/pkg/router"
+	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/utils"
 )
 
-func retriveMetaDataAndConfigure(c *cloud.CloudManager) error {
-	err := cloudprovider.AcquireCloudMetadata(c)
+func retriveMetaDataAndConfigure(m *provider.Enviroment) error {
+	err := provider.AcquireCloudMetadata(m)
 	if err != nil {
 		log.Errorf("Failed to fetch cloud metadata from endpoint")
 		return err
 	}
 
-	cloudprovider.SaveMetaData(c)
+	provider.SaveMetaData(m)
 	if err != nil {
 		log.Errorf("Failed to save cloud metadata: %s", err)
 		return err
 	}
 
-	err = cloudprovider.ConfigureNetworkMetadata(c)
+	err = provider.ConfigureNetworkMetadata(m)
 	if err != nil {
 		log.Errorf("Failed to configure cloud metadata link address: %s", err)
 		return err
@@ -46,7 +46,7 @@ func retriveMetaDataAndConfigure(c *cloud.CloudManager) error {
 	return nil
 }
 
-func createStateDirsAndFiles(provider string) error {
+func createStateDirsAndFiles(provider string) {
 	err := os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
 	if err != nil {
 		log.Errorf("Failed create run dir '/run/cloud-network-setup/links': '%+v'", err)
@@ -59,47 +59,50 @@ func createStateDirsAndFiles(provider string) error {
 
 	links, err := network.AcquireLinks()
 	if err != nil {
-		return err
+		return
 	}
 
 	for _, l := range links.LinksByMAC {
 		err = utils.CreateLinkStatefile("/run/cloud-network-setup/links", l.Ifindex)
 		if err != nil {
 			log.Errorf("Failed to create state file for link='%+v' index='%+v'", l.Name, l.Ifindex)
-			return err
 		}
 	}
 
 	switch provider {
-	case cloudprovider.AWS:
+	case cloud.AWS:
 		err := os.MkdirAll("/run/cloud-network-setup/provider/ec2", os.ModePerm)
 		if err != nil {
 			log.Errorf("Failed create run dir '/run/cloud-network-setup/ec2': '%+v'", err)
-			return err
+			return
 		}
 	default:
 	}
-
-	return nil
 }
 
 func main() {
 	log.Infof("cloud-network-setup: v%+v (built '%+v')", conf.Version, runtime.Version())
+
+	cloud := cloud.DetectCloud()
+	if len(cloud) <= 0 {
+		log.Fatal("Failed to detect cloud enviroment, Aborting ...")
+		os.Exit(1)
+	}
+
+	log.Infof("Detected cloud enviroment: '%+v'", cloud)
 
 	c, err := conf.Parse()
 	if err != nil {
 		log.Errorf("Failed to parse conf file '%+v': %+v", conf.ConfFile, err)
 	}
 
-	m, err := cloud.NewCloudManager()
+	m := provider.New(cloud)
 	if err != nil {
-		log.Errorf("Failed initialize Cloud Manager: '%+v'", err)
+		log.Errorf("Failed initialize cloud provider: '%+v'", err)
 		os.Exit(1)
 	}
 
-	createStateDirsAndFiles(m.CloudProvider)
-
-	log.Infof("Detected cloud enviroment: '%+v'", m.CloudProvider)
+	createStateDirsAndFiles(cloud)
 
 	err = retriveMetaDataAndConfigure(m)
 	if err != nil {
@@ -113,12 +116,14 @@ func main() {
 			<-tick
 			err = retriveMetaDataAndConfigure(m)
 			if err != nil {
-				log.Errorf("Failed to refresh instance metadata from endpoint '%v': %+v ", m.CloudProvider, err)
+				log.Errorf("Failed to refresh instance metadata from endpoint '%v': %+v ", m.Kind, err)
 			}
 		}
 	}()
 
-	router := router.NewRouter()
+	router := mux.NewRouter()
+	path := router.PathPrefix("/api").Subrouter()
+	provider.RegisterRouterCloud(path)
 
 	srv := http.Server{
 		Addr:    net.JoinHostPort(c.Address, c.Port),

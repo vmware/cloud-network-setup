@@ -1,7 +1,7 @@
 // Copyright 2021 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-package azure
+package provider
 
 import (
 	"encoding/json"
@@ -15,7 +15,6 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
 )
@@ -33,6 +32,11 @@ const (
 
 // Azure compute metadata
 type Azure struct {
+	meta AzureMetaData
+}
+
+// Azure compute metadata
+type AzureMetaData struct {
 	Compute struct {
 		AzEnvironment              string `json:"azEnvironment,omitempty"`
 		CustomData                 string `json:"customData,omitempty"`
@@ -133,7 +137,11 @@ type Azure struct {
 	} `json:"network"`
 }
 
-func FetchCloudMetadata(m *cloud.CloudManager) error {
+func NewAzure() *Azure {
+	return &Azure{}
+}
+
+func (az *Azure) FetchCloudMetadata() error {
 	client := resty.New()
 	client.SetHeader("Metadata", "True")
 
@@ -143,18 +151,19 @@ func FetchCloudMetadata(m *cloud.CloudManager) error {
 		return err
 	}
 
-	d := Azure{}
-	json.Unmarshal(resp.Body(), &d)
+	err = json.Unmarshal(resp.Body(), &az.meta)
+	if err != nil {
+		return err
+	}
 
-	m.MetaData = d
 	return nil
 }
 
-func parseIpv4AddressesFromMetadataByMac(mac string, d *Azure) (map[string]bool, error) {
+func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, error) {
 	a := make(map[string]bool)
 
-	for i := 0; i < len(d.Network.Interface); i++ {
-		subnet := d.Network.Interface[i].Ipv4.Subnet[0]
+	for i := 0; i < len(az.meta.Network.Interface); i++ {
+		subnet := az.meta.Network.Interface[i].Ipv4.Subnet[0]
 
 		_, err := strconv.ParseInt(subnet.Prefix, 10, 32)
 		if err != nil {
@@ -162,12 +171,12 @@ func parseIpv4AddressesFromMetadataByMac(mac string, d *Azure) (map[string]bool,
 			continue
 		}
 
-		if strings.ToLower(utils.FormatTextToMAC(d.Network.Interface[i].MacAddress)) != mac {
+		if strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress)) != mac {
 			continue
 		}
 
-		for j := 0; j < len(d.Network.Interface[i].Ipv4.IPAddress); j++ {
-			privateIp := d.Network.Interface[i].Ipv4.IPAddress[j].PrivateIpAddress + "/" + subnet.Prefix
+		for j := 0; j < len(az.meta.Network.Interface[i].Ipv4.IPAddress); j++ {
+			privateIp := az.meta.Network.Interface[i].Ipv4.IPAddress[j].PrivateIpAddress + "/" + subnet.Prefix
 			a[privateIp] = true
 		}
 	}
@@ -175,16 +184,14 @@ func parseIpv4AddressesFromMetadataByMac(mac string, d *Azure) (map[string]bool,
 	return a, nil
 }
 
-func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
-	d := m.MetaData.(Azure)
-
+func (az *Azure) ConfigureCloudMetadataAddress() error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < len(d.Network.Interface); i++ {
-		mac := strings.ToLower(utils.FormatTextToMAC(d.Network.Interface[i].MacAddress))
+	for i := 0; i < len(az.meta.Network.Interface); i++ {
+		mac := strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
 
 		l, ok := links.LinksByMAC[mac]
 		if !ok {
@@ -198,7 +205,7 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 			continue
 		}
 
-		newAddresses, err := parseIpv4AddressesFromMetadataByMac(mac, &d)
+		newAddresses, err := az.parseIpv4AddressesFromMetadataByMac(mac)
 		if err != nil {
 			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
 			continue
@@ -241,34 +248,30 @@ func ConfigureCloudMetadataAddress(m *cloud.CloudManager) error {
 	return nil
 }
 
-func SaveCloudMetadata(m *cloud.CloudManager) error {
-	s := m.MetaData.(Azure)
-
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", s)
+func (az *Azure) SaveCloudMetadata() error {
+	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", az.meta)
 	if err != nil {
-		log.Errorf("Failed to write system file: %+v", err)
+		log.Errorf("Failed to write to system file: %+v", err)
 		return err
 	}
 
 	return nil
 }
 
-func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
-	d := m.MetaData.(Azure)
-
+func (az *Azure) LinkSaveCloudMetadata() error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < len(d.Network.Interface); i++ {
-		mac := strings.ToLower(utils.FormatTextToMAC(d.Network.Interface[i].MacAddress))
+	for i := 0; i < len(az.meta.Network.Interface); i++ {
+		mac := strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
 		l, b := links.LinksByMAC[mac]
 		if !b {
 			continue
 		}
 
-		link := d.Network.Interface[i]
+		link := az.meta.Network.Interface[i]
 		err = utils.CreateAndSaveJSON(path.Join("/run/cloud-network-setup/links", strconv.Itoa(l.Ifindex)), link)
 		if err != nil {
 			log.Errorf("Failed to write link state file link='%+v': %+v", l.Name, err)
@@ -280,11 +283,9 @@ func LinkSaveCloudMetadata(m *cloud.CloudManager) error {
 }
 
 func routerGetCompute(rw http.ResponseWriter, r *http.Request) {
-	m := cloud.GetConext().MetaData.(Azure)
-
 	switch r.Method {
 	case "GET":
-		utils.JSONResponse(m, rw)
+		utils.JSONResponse(GetConext().az.meta, rw)
 	default:
 	}
 }

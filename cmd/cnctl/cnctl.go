@@ -12,16 +12,13 @@ import (
 	"strings"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/powersj/whatsthis"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	cloudprovider "github.com/cloud-network-setup/pkg/cloudprovider"
-	"github.com/cloud-network-setup/pkg/cloudprovider/azure"
-	"github.com/cloud-network-setup/pkg/cloudprovider/ec2"
-	"github.com/cloud-network-setup/pkg/cloudprovider/gcp"
+	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
+	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/utils"
 )
 
@@ -37,7 +34,7 @@ func fetchCloudMetadata(url string) ([]byte, error) {
 	return resp.Body(), nil
 }
 
-func displayAzureCloudNetworkMetadata(links *network.Links, n *azure.Azure) error {
+func displayAzureCloudNetworkMetadata(links *network.Links, n *provider.AzureMetaData) error {
 	for i := 0; i < len(n.Network.Interface); i++ {
 		subnet := n.Network.Interface[i].Ipv4.Subnet[0]
 
@@ -63,7 +60,7 @@ func displayAzureCloudNetworkMetadata(links *network.Links, n *azure.Azure) erro
 	return nil
 }
 
-func displayEC2CloudNetworkMetadata(l *network.Link, n *ec2.MAC) error {
+func displayEC2CloudNetworkMetadata(l *network.Link, n *provider.EC2MAC) error {
 	fmt.Printf("            OwnerID: %+v \n", n.OwnerID)
 	fmt.Printf("               Name: %+v \n", l.Name)
 	fmt.Printf("        MAC Address: %+v \n", n.Mac)
@@ -96,7 +93,7 @@ func displayEC2CloudNetworkMetadata(l *network.Link, n *ec2.MAC) error {
 	return nil
 }
 
-func displayGCPCloudNetworkMetadata(links *network.Links, g *gcp.GCP) error {
+func displayGCPCloudNetworkMetadata(links *network.Links, g *provider.GCPMetaData) error {
 	for i := 0; i < len(g.Instance.Networkinterfaces); i++ {
 		l, ok := links.LinksByMAC[g.Instance.Networkinterfaces[i].Mac]
 		if !ok {
@@ -143,21 +140,20 @@ func fetchCloudNetworkMetadata() error {
 		return err
 	}
 
-	provider, _ := whatsthis.Cloud()
-	switch provider.Name {
-	case cloudprovider.Azure:
-		f := azure.Azure{}
+	switch cloud.DetectCloud() {
+	case cloud.Azure:
+		f := provider.AzureMetaData{}
 		json.Unmarshal(resp, &f)
 
 		displayAzureCloudNetworkMetadata(links, &f)
-	case cloudprovider.AWS:
+	case cloud.AWS:
 		m := make(map[string]interface{})
 		json.Unmarshal(resp, &m)
 
 		for _, v := range m {
 			s, _ := json.Marshal(v)
 
-			t := ec2.MAC{}
+			t := provider.EC2MAC{}
 			json.Unmarshal(s, &t)
 
 			l, ok := links.LinksByMAC[t.Mac]
@@ -167,19 +163,19 @@ func fetchCloudNetworkMetadata() error {
 
 			displayEC2CloudNetworkMetadata(&l, &t)
 		}
-	case cloudprovider.GCP:
-		f := gcp.GCP{}
+	case cloud.GCP:
+		f := provider.GCPMetaData{}
 		json.Unmarshal(resp, &f)
 
 		displayGCPCloudNetworkMetadata(links, &f)
 	default:
-		fmt.Printf("Unsupported cloud enviromennt: '%s'", provider)
+		fmt.Printf("Unsupported cloud enviroment")
 	}
 
 	return nil
 }
 
-func displayAzureCloudSystemMetadata(c *azure.Azure, provider string) {
+func displayAzureCloudSystemMetadata(c *provider.AzureMetaData, provider string) {
 	fmt.Printf("   Cloud provider: %+v \n", provider)
 	fmt.Printf("Azure Environment: %+v \n", c.Compute.AzEnvironment)
 	fmt.Printf("         Location: %+v \n", c.Compute.Location)
@@ -232,7 +228,7 @@ func displayAzureCloudSystemMetadata(c *azure.Azure, provider string) {
 	fmt.Printf("    AdminUsername: %+v \n", c.Compute.OsProfile.AdminUsername)
 }
 
-func displayEC2CloudSystemMetadata(c *ec2.EC2, provider string) {
+func displayEC2CloudSystemMetadata(c *provider.EC2System, provider string) {
 	fmt.Printf("    Cloud provider: %+v \n", provider)
 	fmt.Printf("             AmiID: %+v \n", c.AmiID)
 	fmt.Printf("          Location: %+v \n", c.AmiLaunchIndex)
@@ -254,7 +250,7 @@ func displayEC2CloudSystemMetadata(c *ec2.EC2, provider string) {
 	fmt.Printf("Services Partition: %+v \n", c.Services.Partition)
 }
 
-func displayGCPCloudSystemMetadata(g *gcp.GCP, provider string) {
+func displayGCPCloudSystemMetadata(g *provider.GCPMetaData, provider string) {
 	fmt.Printf("                         Cloud Provider: %+v \n", provider)
 	fmt.Printf("                                     ID: %+v \n", g.Instance.ID)
 	fmt.Printf("                                   Name: %+v \n", g.Instance.Name)
@@ -296,30 +292,30 @@ func fetchCloudSystemMetadata() {
 		return
 	}
 
-	provider, err := whatsthis.Cloud()
-	switch provider.Name {
-	case cloudprovider.Azure:
-		f := azure.Azure{}
+	e := cloud.DetectCloud()
+	switch e {
+	case cloud.Azure:
+		f := provider.AzureMetaData{}
 		json.Unmarshal(resp, &f)
 
-		displayAzureCloudSystemMetadata(&f, provider.Name)
-	case cloudprovider.AWS:
-		f := ec2.EC2{}
+		displayAzureCloudSystemMetadata(&f, e)
+	case cloud.AWS:
+		f := provider.EC2System{}
 		json.Unmarshal(resp, &f)
 
-		displayEC2CloudSystemMetadata(&f, provider.Name)
-	case cloudprovider.GCP:
-		f := gcp.GCP{}
+		displayEC2CloudSystemMetadata(&f, e)
+	case cloud.GCP:
+		f := provider.GCPMetaData{}
 		json.Unmarshal(resp, &f)
 
-		displayGCPCloudSystemMetadata(&f, provider.Name)
+		displayGCPCloudSystemMetadata(&f, e)
 	default:
 		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
 		return
 	}
 }
 
-func displayAzureCloudSSHKeysFromMetadata(c *azure.Azure) {
+func displayAzureCloudSSHKeysFromMetadata(c *provider.AzureMetaData) {
 	fmt.Printf("AdminUsername: %+v \n", c.Compute.OsProfile.AdminUsername)
 	fmt.Printf("  Public Keys: %+v \n\n", c.Compute.PublicKeys)
 }
@@ -338,7 +334,7 @@ func displayEC2CloudSSHKeysFromMetadata(k []byte, c []byte) {
 	}
 }
 
-func displayGCPCloudSSHKeysFromMetadata(g *gcp.GCP) {
+func displayGCPCloudSSHKeysFromMetadata(g *provider.GCPMetaData) {
 	k := strings.Trim(g.Project.Attributes.SSHKeys, " ") + "\n" + strings.Trim(g.Project.Attributes.Sshkeys, " ")
 	ssh := strings.Split(k, "\n")
 	for _, s := range ssh {
@@ -354,22 +350,21 @@ func fetchSSHKeysFromCloudMetadata() {
 		return
 	}
 
-	provider, err := whatsthis.Cloud()
-	switch provider.Name {
-	case cloudprovider.Azure:
-		f := azure.Azure{}
+	switch cloud.DetectCloud() {
+	case cloud.Azure:
+		f := provider.AzureMetaData{}
 		json.Unmarshal(resp, &f)
 
 		displayAzureCloudSSHKeysFromMetadata(&f)
-	case cloudprovider.AWS:
+	case cloud.AWS:
 		c, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/credentials")
 		if err != nil {
 			return
 		}
 
 		displayEC2CloudSSHKeysFromMetadata(resp, c)
-	case cloudprovider.GCP:
-		f := gcp.GCP{}
+	case cloud.GCP:
+		f := provider.GCPMetaData{}
 		json.Unmarshal(resp, &f)
 
 		displayGCPCloudSSHKeysFromMetadata(&f)
@@ -379,7 +374,7 @@ func fetchSSHKeysFromCloudMetadata() {
 	}
 }
 
-func displayIdentityCredentialsFromMetadata(c *ec2.Credentials) {
+func displayIdentityCredentialsFromMetadata(c *provider.EC2Credentials) {
 	fmt.Printf("    Accesskeyid: %+v\n", c.Accesskeyid)
 	fmt.Printf("           Type: %+v\n", c.Type)
 	fmt.Printf("     Expiration: %+v\n", c.Expiration)
@@ -394,13 +389,11 @@ func fetchIdentityCredentialsFromCloudMetadata() {
 		return
 	}
 
-	provider, err := whatsthis.Cloud()
-	switch provider.Name {
-	case cloudprovider.AWS:
-		var c ec2.Credentials
+	switch cloud.DetectCloud() {
+	case cloud.AWS:
+		var c provider.EC2Credentials
 
 		json.Unmarshal(resp, &c)
-
 		displayIdentityCredentialsFromMetadata(&c)
 	default:
 		fmt.Printf("unsupported: '%+v'", err)
@@ -408,7 +401,7 @@ func fetchIdentityCredentialsFromCloudMetadata() {
 	}
 }
 
-func displayDynamicInstanceIdentityDocument(c *ec2.Document) {
+func displayDynamicInstanceIdentityDocument(c *provider.EC2Document) {
 	fmt.Printf("              Accountid: %+v\n", c.Accountid)
 	fmt.Printf("           Architecture: %+v\n", c.Architecture)
 	fmt.Printf("       Availabilityzone: %+v\n", c.Availabilityzone)
@@ -440,13 +433,12 @@ func fetchDynamicInstanceIdentityFromCloudMetadata(s string) {
 		return
 	}
 
-	provider, err := whatsthis.Cloud()
-	switch provider.Name {
-	case cloudprovider.AWS:
+	switch cloud.DetectCloud() {
+	case cloud.AWS:
 
 		switch s {
 		case "document":
-			var c ec2.Document
+			var c provider.EC2Document
 
 			json.Unmarshal(resp, &c)
 			displayDynamicInstanceIdentityDocument(&c)
