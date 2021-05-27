@@ -250,15 +250,12 @@ func (g *GCP) LinkSaveCloudMetadata() error {
 	return nil
 }
 
-func routerGetGCP(rw http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		utils.JSONResponse(GetConext().gcp.meta, rw)
-	default:
-	}
+func (e *Enviroment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
+	utils.JSONResponse(e.gcp.meta, rw)
+
 }
 
-func RegisterRouterGCP(router *mux.Router) {
-	router.HandleFunc("/network", routerGetGCP)
-	router.HandleFunc("/system", routerGetGCP)
+func RegisterRouterGCP(r *mux.Router, e *Enviroment) {
+	r.HandleFunc("/network", e.routerGetGCP).Methods("GET")
+	r.HandleFunc("/system", e.routerGetGCP).Methods("GET")
 }

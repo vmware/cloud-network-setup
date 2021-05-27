@@ -19,8 +19,6 @@ type Enviroment struct {
 	ec2  *EC2
 }
 
-var CM *Enviroment
-
 func New(provider string) *Enviroment {
 	m := &Enviroment{
 		Kind: provider,
@@ -36,12 +34,7 @@ func New(provider string) *Enviroment {
 	default:
 	}
 
-	CM = m
 	return m
-}
-
-func GetConext() (m *Enviroment) {
-	return CM
 }
 
 func AcquireCloudMetadata(m *Enviroment) error {
@@ -125,17 +118,15 @@ func SaveMetaData(m *Enviroment) error {
 	return nil
 }
 
-func RegisterRouterCloud(router *mux.Router) {
-	n := router.PathPrefix("/cloud").Subrouter()
+func RegisterRouterCloud(r *mux.Router, provider *Enviroment) {
+	n := r.PathPrefix("/cloud").Subrouter()
 
-	switch GetConext().Kind {
+	switch provider.Kind {
 	case cloud.Azure:
-		RegisterRouterAzure(n)
+		RegisterRouterAzure(n, provider)
 	case cloud.AWS:
-		RegisterRouterEC2(n)
+		RegisterRouterEC2(n, provider)
 	case cloud.GCP:
-		RegisterRouterGCP(n)
-	default:
-		return
+		RegisterRouterGCP(n, provider)
 	}
 }

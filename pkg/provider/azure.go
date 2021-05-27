@@ -282,15 +282,11 @@ func (az *Azure) LinkSaveCloudMetadata() error {
 	return nil
 }
 
-func routerGetCompute(rw http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		utils.JSONResponse(GetConext().az.meta, rw)
-	default:
-	}
+func (e *Enviroment) routerGetCompute(rw http.ResponseWriter, r *http.Request) {
+	utils.JSONResponse(e.az.meta, rw)
 }
 
-func RegisterRouterAzure(router *mux.Router) {
-	router.HandleFunc("/network", routerGetCompute)
-	router.HandleFunc("/system", routerGetCompute)
+func RegisterRouterAzure(r *mux.Router, e *Enviroment) {
+	r.HandleFunc("/network", e.routerGetCompute).Methods("GET")
+	r.HandleFunc("/system", e.routerGetCompute).Methods("GET")
 }

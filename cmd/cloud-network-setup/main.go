@@ -121,13 +121,13 @@ func main() {
 		}
 	}()
 
-	router := mux.NewRouter()
-	path := router.PathPrefix("/api").Subrouter()
-	provider.RegisterRouterCloud(path)
+	r := mux.NewRouter()
+	apiRouter := r.PathPrefix("/api").Subrouter()
+	provider.RegisterRouterCloud(apiRouter, m)
 
 	srv := http.Server{
 		Addr:    net.JoinHostPort(c.Address, c.Port),
-		Handler: router,
+		Handler: r,
 	}
 
 	s := make(chan os.Signal, 1)

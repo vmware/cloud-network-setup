@@ -458,49 +458,33 @@ func (ec2 *EC2) LinkSaveCloudMetadata() error {
 	return nil
 }
 
-func routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		utils.JSONResponse(GetConext().ec2.system, rw)
-	default:
+func (e *Enviroment) routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
+	utils.JSONResponse(e.ec2.system, rw)
+}
+
+func (e *Enviroment) routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
+	utils.JSONResponse(e.ec2.network, rw)
+}
+
+func (e *Enviroment) routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
+	utils.JSONResponse(e.ec2.credentials, rw)
+}
+
+func (e *Enviroment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
+	if strings.HasSuffix(r.URL.Path, "document") {
+		utils.JSONResponse(e.ec2.document, rw)
+	} else if strings.HasSuffix(r.URL.Path, "pkcs7") {
+		utils.JSONResponse(e.ec2.pkcs7, rw)
+	} else if strings.HasSuffix(r.URL.Path, "signature") {
+		utils.JSONResponse(e.ec2.signature, rw)
+	} else if strings.HasSuffix(r.URL.Path, "rsa2048") {
+		utils.JSONResponse(e.ec2.rsa2048, rw)
 	}
 }
 
-func routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		utils.JSONResponse(GetConext().ec2.network, rw)
-	default:
-	}
-}
-
-func routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		utils.JSONResponse(GetConext().ec2.credentials, rw)
-	default:
-	}
-}
-
-func routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		if strings.HasSuffix(r.URL.Path, "document") {
-			utils.JSONResponse(GetConext().ec2.document, rw)
-		} else if strings.HasSuffix(r.URL.Path, "pkcs7") {
-			utils.JSONResponse(GetConext().ec2.pkcs7, rw)
-		} else if strings.HasSuffix(r.URL.Path, "signature") {
-			utils.JSONResponse(GetConext().ec2.signature, rw)
-		} else if strings.HasSuffix(r.URL.Path, "rsa2048") {
-			utils.JSONResponse(GetConext().ec2.rsa2048, rw)
-		}
-	default:
-	}
-}
-
-func RegisterRouterEC2(router *mux.Router) {
-	router.HandleFunc("/system", routerGetEC2System)
-	router.HandleFunc("/network", routerGetEC2Network)
-	router.HandleFunc("/credentials", routerGetEC2Credentials)
-	router.HandleFunc("/dynamicinstanceidentity/{category}", routerGetEC2DynamicInstanceIdentity)
+func RegisterRouterEC2(r *mux.Router, e *Enviroment) {
+	r.HandleFunc("/system", e.routerGetEC2System).Methods("GET")
+	r.HandleFunc("/network", e.routerGetEC2Network).Methods("GET")
+	r.HandleFunc("/credentials", e.routerGetEC2Credentials).Methods("GET")
+	r.HandleFunc("/dynamicinstanceidentity/{category}", e.routerGetEC2DynamicInstanceIdentity).Methods("GET")
 }
