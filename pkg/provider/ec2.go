@@ -222,7 +222,6 @@ func fetchMACAddresses(url string) ([]string, error) {
 }
 
 func fetchMetadata(url string) ([]byte, error) {
-	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err

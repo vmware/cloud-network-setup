@@ -31,11 +31,6 @@ const (
 )
 
 // Azure compute metadata
-type Azure struct {
-	meta AzureMetaData
-}
-
-// Azure compute metadata
 type AzureMetaData struct {
 	Compute struct {
 		AzEnvironment              string `json:"azEnvironment,omitempty"`
@@ -137,8 +132,15 @@ type AzureMetaData struct {
 	} `json:"network"`
 }
 
+type Azure struct {
+	meta           AzureMetaData
+	addressesByMAC map[string][]string
+}
+
 func NewAzure() *Azure {
-	return &Azure{}
+	return &Azure{
+		addressesByMAC: make(map[string][]string),
+	}
 }
 
 func (az *Azure) FetchCloudMetadata() error {
@@ -163,15 +165,14 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 	a := make(map[string]bool)
 
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
-		subnet := az.meta.Network.Interface[i].Ipv4.Subnet[0]
-
-		_, err := strconv.ParseInt(subnet.Prefix, 10, 32)
-		if err != nil {
-			log.Errorf("Failed to parse address prefix=%+v': %+v", subnet.Prefix, err)
+		if strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress)) != mac {
 			continue
 		}
 
-		if strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress)) != mac {
+		subnet := az.meta.Network.Interface[i].Ipv4.Subnet[0]
+		_, err := strconv.ParseInt(subnet.Prefix, 10, 32)
+		if err != nil {
+			log.Errorf("Failed to parse address prefix=%+v': %+v", subnet.Prefix, err)
 			continue
 		}
 
@@ -179,6 +180,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 			privateIp := az.meta.Network.Interface[i].Ipv4.IPAddress[j].PrivateIpAddress + "/" + subnet.Prefix
 			a[privateIp] = true
 		}
+		break
 	}
 
 	return a, nil
@@ -211,22 +213,27 @@ func (az *Azure) ConfigureCloudMetadataAddress() error {
 			continue
 		}
 
-		eq := reflect.DeepEqual(existingAddresses, newAddresses)
-		if eq {
-			log.Debugf("Existing addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are same. Skipping ...", existingAddresses, newAddresses)
-			continue
-		}
+		if len(az.addressesByMAC[mac]) > 0 {
+			earlierAddresses := az.addressesByMAC[mac]
 
-		// Purge old addresses
-		for i := range existingAddresses {
-			_, ok = newAddresses[i]
-			if !ok {
-				err = network.RemoveIPAddress(l.Name, i)
-				if err != nil {
-					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
-					continue
-				} else {
-					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+			eq := reflect.DeepEqual(newAddresses, earlierAddresses)
+			if eq {
+				log.Debugf("Old metadata addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are equal. Skipping ...",
+					existingAddresses, newAddresses)
+				continue
+			}
+
+			// Purge old addresses
+			for _, i := range earlierAddresses {
+				_, ok = newAddresses[i]
+				if !ok {
+					err = network.RemoveIPAddress(l.Name, i)
+					if err != nil {
+						log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
+						continue
+					} else {
+						log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+					}
 				}
 			}
 		}
@@ -243,6 +250,14 @@ func (az *Azure) ConfigureCloudMetadataAddress() error {
 				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
 			}
 		}
+
+		delete(az.addressesByMAC, mac)
+
+		var a []string
+		for i := range newAddresses {
+			a = append(a, i)
+		}
+		az.addressesByMAC[mac] = a
 	}
 
 	return nil

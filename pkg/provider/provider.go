@@ -118,15 +118,15 @@ func SaveMetaData(m *Enviroment) error {
 	return nil
 }
 
-func RegisterRouterCloud(r *mux.Router, provider *Enviroment) {
+func RegisterRouterCloud(r *mux.Router, e *Enviroment) {
 	n := r.PathPrefix("/cloud").Subrouter()
 
-	switch provider.Kind {
+	switch e.Kind {
 	case cloud.Azure:
-		RegisterRouterAzure(n, provider)
+		RegisterRouterAzure(n, e)
 	case cloud.AWS:
-		RegisterRouterEC2(n, provider)
+		RegisterRouterEC2(n, e)
 	case cloud.GCP:
-		RegisterRouterGCP(n, provider)
+		RegisterRouterGCP(n, e)
 	}
 }

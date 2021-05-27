@@ -145,7 +145,7 @@ func fetchCloudNetworkMetadata() error {
 		f := provider.AzureMetaData{}
 		json.Unmarshal(resp, &f)
 
-		displayAzureCloudNetworkMetadata(links, &f)
+		displayAzureCloudNetworkMetadata(&links, &f)
 	case cloud.AWS:
 		m := make(map[string]interface{})
 		json.Unmarshal(resp, &m)
@@ -167,7 +167,7 @@ func fetchCloudNetworkMetadata() error {
 		f := provider.GCPMetaData{}
 		json.Unmarshal(resp, &f)
 
-		displayGCPCloudNetworkMetadata(links, &f)
+		displayGCPCloudNetworkMetadata(&links, &f)
 	default:
 		fmt.Printf("Unsupported cloud enviroment")
 	}

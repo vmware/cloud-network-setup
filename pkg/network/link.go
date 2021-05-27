@@ -19,15 +19,16 @@ type Link struct {
 	Name         string
 	Ifindex      int
 	HardwareAddr net.HardwareAddr
+	Addresses    *map[string]bool
 }
 
 // AcquireLinks Fetches link information
-func AcquireLinks() (*Links, error) {
+func AcquireLinks() (Links, error) {
 	links := make(map[string]Link)
 
 	linkList, err := netlink.LinkList()
 	if err != nil {
-		return nil, err
+		return Links{}, err
 	}
 
 	for _, link := range linkList {
@@ -46,7 +47,7 @@ func AcquireLinks() (*Links, error) {
 		log.Debugf("Aquired link='%+v' ifindex='%+v'", link.Attrs().Name, link.Attrs().Index)
 	}
 
-	return &Links{
+	return Links{
 		LinksByMAC: links,
 	}, nil
 }
