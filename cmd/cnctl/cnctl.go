@@ -316,8 +316,12 @@ func fetchCloudSystemMetadata() {
 }
 
 func displayAzureCloudSSHKeysFromMetadata(c *provider.AzureMetaData) {
-	fmt.Printf("AdminUsername: %+v \n", c.Compute.OsProfile.AdminUsername)
-	fmt.Printf("  Public Keys: %+v \n\n", c.Compute.PublicKeys)
+	fmt.Printf("  AdminUsername: %+v \n", c.Compute.OsProfile.AdminUsername)
+
+	for i := range c.Compute.PublicKeys {
+		fmt.Printf("Public Key Path: %+v \n", c.Compute.PublicKeys[i].Path)
+		fmt.Printf("Public Key Data: %+v \n\n", c.Compute.PublicKeys[i].KeyData)
+	}
 }
 
 func displayEC2CloudSSHKeysFromMetadata(k []byte, c []byte) {
