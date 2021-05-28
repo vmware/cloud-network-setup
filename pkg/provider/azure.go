@@ -133,13 +133,18 @@ type AzureMetaData struct {
 }
 
 type Azure struct {
-	meta           AzureMetaData
+	meta AzureMetaData
+
+	routeTable     int
 	addressesByMAC map[string][]string
+	routingRules   map[string]*network.IPRoutingRule
 }
 
 func NewAzure() *Azure {
 	return &Azure{
+		routeTable:     9999,
 		addressesByMAC: make(map[string][]string),
+		routingRules:   make(map[string]*network.IPRoutingRule),
 	}
 }
 
@@ -233,6 +238,11 @@ func (az *Azure) ConfigureCloudMetadataAddress() error {
 						continue
 					} else {
 						log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+
+						r, ok := az.routingRules[i]
+						if ok {
+							az.removeRoutingPolicyRule(r, &l)
+						}
 					}
 				}
 			}
@@ -248,6 +258,11 @@ func (az *Azure) ConfigureCloudMetadataAddress() error {
 				}
 
 				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+
+				err = az.configureRoutingPolicyRule(&l, i)
+				if err != nil {
+					continue
+				}
 			}
 		}
 
@@ -259,6 +274,44 @@ func (az *Azure) ConfigureCloudMetadataAddress() error {
 		}
 		az.addressesByMAC[mac] = a
 	}
+
+	return nil
+}
+
+func (az *Azure) configureRoutingPolicyRule(link *network.Link, address string) error {
+	s := strings.SplitAfter(address, "/")
+	prefix, _ := strconv.Atoi(strings.SplitAfter(address, "/")[1])
+	a := strings.TrimSuffix(s[0], "/")
+
+	rule := &network.IPRoutingRule{
+		Address: a,
+		Prefix:  prefix,
+		Table:   az.routeTable,
+	}
+
+	err := network.AddRoutingPolicyRule(rule)
+	if err != nil {
+		log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v': '%+v'", link.Name, link.Ifindex, err)
+	}
+
+	log.Debugf("Successfully added routing policy rule for link='%+v' ifindex='%+v'", link.Name, link.Ifindex)
+
+	az.routingRules[address] = rule
+	az.routeTable--
+
+	return nil
+}
+
+func (az *Azure) removeRoutingPolicyRule(rule *network.IPRoutingRule, link *network.Link) error {
+	err := network.RemoveRoutingPolicyRule(rule)
+	if err != nil {
+		log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v': '%+v'", link.Name, link.Ifindex, err)
+	}
+
+	log.Debugf("Successfully removed routing policy rule for link='%+v' ifindex='%+v'", link.Name, link.Ifindex)
+
+	az.routingRules[rule.Address] = rule
+	az.routeTable--
 
 	return nil
 }

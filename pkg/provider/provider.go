@@ -73,42 +73,33 @@ func ConfigureNetworkMetadata(m *Enviroment) error {
 }
 
 func SaveMetaData(m *Enviroment) error {
-	var err error
-
 	switch m.Kind {
 	case cloud.Azure:
-		err = m.az.SaveCloudMetadata()
-		if err != nil {
+		if err := m.az.SaveCloudMetadata(); err != nil {
 			return err
 		}
 
-		err = m.az.LinkSaveCloudMetadata()
-		if err != nil {
+		if err := m.az.LinkSaveCloudMetadata(); err != nil {
 			return err
 		}
 	case cloud.AWS:
-		err = m.ec2.SaveCloudMetadata()
-		if err != nil {
+		if err := m.ec2.SaveCloudMetadata(); err != nil {
 			return err
 		}
 
-		err = m.ec2.SaveCloudMetadataIdentityCredentials()
-		if err != nil {
+		if err := m.ec2.SaveCloudMetadataIdentityCredentials(); err != nil {
 			return err
 		}
 
-		err = m.ec2.LinkSaveCloudMetadata()
-		if err != nil {
+		if err := m.ec2.LinkSaveCloudMetadata(); err != nil {
 			return err
 		}
 	case cloud.GCP:
-		err = m.gcp.SaveCloudMetadata()
-		if err != nil {
+		if err := m.gcp.SaveCloudMetadata(); err != nil {
 			return err
 		}
 
-		err = m.gcp.LinkSaveCloudMetadata()
-		if err != nil {
+		if err := m.gcp.LinkSaveCloudMetadata(); err != nil {
 			return err
 		}
 	default:

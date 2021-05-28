@@ -57,7 +57,6 @@ func GetIPv4Addreses(ifName string) (map[string]bool, error) {
 	} else {
 		for _, addr := range addresses {
 			m[addr.IPNet.String()] = true
-
 		}
 	}
 	return m, nil
