@@ -10,9 +10,13 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+const (
+	ROUTING_TABLE_MAX = 9999
+	ROUTING_TABLE_MIN = 99
+)
+
 type IPRoutingRule struct {
 	Address string
-	Prefix  int
 	Table   int
 }
 
@@ -34,7 +38,7 @@ func AddRoutingPolicyRule(rule *IPRoutingRule) error {
 
 	r := netlink.NewRule()
 	r.Table = rule.Table
-	r.Src = &net.IPNet{IP: net.ParseIP(rule.Address), Mask: net.CIDRMask(rule.Prefix, 32)}
+	r.Src = &net.IPNet{IP: net.ParseIP(rule.Address), Mask: net.CIDRMask(32, 32)}
 
 	// find this rule
 	found := ruleExists(rules, *r)
@@ -53,7 +57,7 @@ func AddRoutingPolicyRule(rule *IPRoutingRule) error {
 func RemoveRoutingPolicyRule(rule *IPRoutingRule) error {
 	r := netlink.NewRule()
 	r.Table = rule.Table
-	r.Src = &net.IPNet{IP: net.ParseIP(rule.Address), Mask: net.CIDRMask(rule.Prefix, 32)}
+	r.Src = &net.IPNet{IP: net.ParseIP(rule.Address), Mask: net.CIDRMask(32, 32)}
 
 	if err := netlink.RuleDel(r); err != nil {
 		return err

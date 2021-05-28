@@ -52,7 +52,6 @@ func AddRoute(ifIndex int, table int, gateway string) error {
 
 	rt := netlink.Route{
 		LinkIndex: ifIndex,
-		Scope:     netlink.SCOPE_UNIVERSE,
 		Gw:        gw,
 		Table:     table,
 	}
