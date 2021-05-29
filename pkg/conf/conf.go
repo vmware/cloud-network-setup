@@ -115,7 +115,6 @@ func Parse() (*Config, error) {
 		logrus.Warningf("Faild to parse config file. Using defaults: '%+v'", err)
 
 		flag.Parse()
-
 		return nil, err
 	}
 
@@ -127,19 +126,19 @@ func Parse() (*Config, error) {
 
 	_, err = utils.ParseIP(conf.Network.Address)
 	if err != nil {
-		logrus.Warningf("Failed to parse Address='%+v' ort='%+v'", conf.Network.Address, conf.Network.Port)
+		logrus.Warningf("Failed to parse Address='%+v' port='%+v': %+v", conf.Network.Address, conf.Network.Port, err)
 		IPFlag = conf.Network.Address
 	}
 
 	_, err = utils.ParsePort(conf.Network.Port)
 	if err != nil {
-		logrus.Warningf("Failed to parse Port='%+v'", conf.Network.Port)
+		logrus.Warningf("Failed to parse Port='%+v': %+v", conf.Network.Port, err)
 		PortFlag = conf.Network.Port
 	}
 
 	t, err := time.ParseDuration(conf.System.RefreshTimer)
 	if err != nil {
-		logrus.Warningf("Failed to parse RefreshTimer='%+v'", conf.System.RefreshTimer)
+		logrus.Warningf("Failed to parse RefreshTimer='%+v': %+v", conf.System.RefreshTimer, err)
 	} else {
 		RefreshTimerFlag = t
 	}
@@ -150,7 +149,7 @@ func Parse() (*Config, error) {
 	if err != nil {
 		err = SetLogLevel(conf.System.LogLevel)
 		if err != nil {
-			logrus.Warningf("Failed to parse LogLevel='%+v'", conf.System.LogLevel)
+			logrus.Warningf("Failed to parse LogLevel='%+v': %+v", conf.System.LogLevel, err)
 		} else {
 			LogLevelFlag = conf.System.LogLevel
 		}
@@ -162,7 +161,7 @@ func Parse() (*Config, error) {
 	if err != nil {
 		err = SetLogFormat(conf.System.LogFormat)
 		if err != nil {
-			logrus.Warningf("Failed to parse LogFormat='%+v'", conf.System.LogFormat)
+			logrus.Warningf("Failed to parse LogFormat='%+v': %+v", conf.System.LogFormat, err)
 		} else {
 			LogFormatFlag = conf.System.LogFormat
 		}

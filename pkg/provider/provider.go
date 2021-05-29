@@ -192,10 +192,11 @@ func (m *Enviroment) configureRoute(link *network.Link) error {
 
 	err = network.AddRoute(link.Ifindex, m.routeTable+link.Ifindex, gw)
 	if err != nil {
-		log.Errorf("Failed to added default gateway='%+v' for link='%+v' ifindex='%+v': '%+v' table='%d': %+v", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex, err)
+		log.Errorf("Failed to add default gateway='%+v' for link='%+v' ifindex='%+v': '%+v' table='%d': %+v", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex, err)
+		return err
+	} else {
+		log.Debugf("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex)
 	}
-
-	log.Debugf("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex)
 
 	return nil
 }
@@ -211,11 +212,12 @@ func (m *Enviroment) configureRoutingPolicyRule(link *network.Link, address stri
 
 	err := network.AddRoutingPolicyRule(from)
 	if err != nil {
-		log.Errorf("Failed to add routing policy rule 'from' for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, from.Table, err)
+		log.Errorf("Failed to add routing policy rule 'from' for link='%+v' ifindex='%+v' table='%d': %+v", link.Name, link.Ifindex, from.Table, err)
+		return err
+	} else {
+		log.Debugf("Successfully added routing policy rule 'from' in route table='%d' for link='%+v' ifindex='%+v'", from.Table, link.Name, link.Ifindex)
 	}
 	m.routingRulesByAddressFrom[address] = from
-
-	log.Debugf("Successfully added routing policy rule 'from' in route table='%d' for link='%+v' ifindex='%+v'", from.Table, link.Name, link.Ifindex)
 
 	to := &network.IPRoutingRule{
 		To:    addr,
@@ -225,25 +227,26 @@ func (m *Enviroment) configureRoutingPolicyRule(link *network.Link, address stri
 	err = network.AddRoutingPolicyRule(to)
 	if err != nil {
 		log.Errorf("Failed to add routing policy rule 'to' for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, to.Table, err)
+		return err
+	} else {
+		log.Debugf("Successfully added routing policy rule 'to' in route table='%d' for link='%+v' ifindex='%+v'", to.Table, link.Name, link.Ifindex)
 	}
 	m.routingRulesByAddressFrom[address] = from
-
-	log.Debugf("Successfully added routing policy rule 'to' in route table='%d' for link='%+v' ifindex='%+v'", to.Table, link.Name, link.Ifindex)
 
 	return nil
 }
 
 func (m *Enviroment) removeRoutingPolicyRule(address string, link *network.Link) error {
-
 	rule, ok := m.routingRulesByAddressFrom[address]
 	if ok {
 		err := network.RemoveRoutingPolicyRule(rule)
 		if err != nil {
 			log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
+		} else {
+			log.Debugf("Successfully removed routing policy rule for link='%+v' ifindex='%+v' table='%d'", link.Name, link.Ifindex, rule.Table)
 		}
 		delete(m.routingRulesByAddressFrom, address)
 
-		log.Debugf("Successfully removed routing policy rule for link='%+v' ifindex='%+v' table='%d'", link.Name, link.Ifindex, rule.Table)
 	}
 
 	rule, ok = m.routingRulesByAddressTo[address]
