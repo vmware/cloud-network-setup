@@ -62,7 +62,7 @@ func AcquireCloudMetadata(m *Enviroment) error {
 func ConfigureNetworkMetadata(m *Enviroment) error {
 	switch m.Kind {
 	case cloud.Azure:
-		return m.az.ConfigureCloudMetadataAddress()
+		return m.az.ConfigureNetworkFromCloudMeta()
 	case cloud.AWS:
 		return m.ec2.ConfigureCloudMetadataAddress()
 	case cloud.GCP:

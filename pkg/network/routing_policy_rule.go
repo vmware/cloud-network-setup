@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	ROUTING_TABLE_MAX = 9999
-	ROUTING_TABLE_MIN = 99
+	ROUTE_TABLE_BASE = 9999
 )
 
 type IPRoutingRule struct {

@@ -142,7 +142,7 @@ type Azure struct {
 
 func NewAzure() *Azure {
 	return &Azure{
-		routeTable:            network.ROUTING_TABLE_MAX,
+		routeTable:            network.ROUTE_TABLE_BASE,
 		addressesByMAC:        make(map[string][]string),
 		routingRulesByAddress: make(map[string]*network.IPRoutingRule),
 	}
@@ -190,7 +190,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 	return a, nil
 }
 
-func (az *Azure) ConfigureCloudMetadataAddress() error {
+func (az *Azure) ConfigureNetworkFromCloudMeta() error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
@@ -264,13 +264,13 @@ func (az *Azure) ConfigureCloudMetadataAddress() error {
 				// ip rule add from 10.0.0.5 lookup custom
 				// ip route add default via 10.0.0.1 dev eth2 table custom
 
-				table := az.routeTable
-				err = az.configureRoutingPolicyRule(&l, i)
-				if err != nil {
+				if err := az.configureRoute(az.routeTable+l.Ifindex, &l); err != nil {
 					continue
 				}
 
-				az.configureRoute(table, &l)
+				if err := az.configureRoutingPolicyRule(&l, i); err != nil {
+					continue
+				}
 			}
 		}
 
@@ -292,18 +292,16 @@ func (az *Azure) configureRoutingPolicyRule(link *network.Link, address string) 
 
 	rule := &network.IPRoutingRule{
 		Address: a,
-		Table:   az.routeTable,
+		Table:   az.routeTable + link.Ifindex,
 	}
 
 	err := network.AddRoutingPolicyRule(rule)
 	if err != nil {
-		log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v': '%+v'", link.Name, link.Ifindex, err)
+		log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
 	}
-
-	log.Debugf("Successfully added routing policy rule for link='%+v' ifindex='%+v'", link.Name, link.Ifindex)
-
-	az.routeTable--
 	az.routingRulesByAddress[address] = rule
+
+	log.Debugf("Successfully added routing policy rule in route table='%d' for link='%+v' ifindex='%+v'", rule.Table, link.Name, link.Ifindex)
 
 	return nil
 }
@@ -311,17 +309,12 @@ func (az *Azure) configureRoutingPolicyRule(link *network.Link, address string) 
 func (az *Azure) removeRoutingPolicyRule(rule *network.IPRoutingRule, link *network.Link) error {
 	err := network.RemoveRoutingPolicyRule(rule)
 	if err != nil {
-		log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v': '%+v'", link.Name, link.Ifindex, err)
+		log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
 	}
 
-	log.Debugf("Successfully removed routing policy rule for link='%+v' ifindex='%+v'", link.Name, link.Ifindex)
+	log.Debugf("Successfully removed routing policy rule for link='%+v' ifindex='%+v' table='%d'", link.Name, link.Ifindex, rule.Table)
 
 	az.routingRulesByAddress[rule.Address] = rule
-
-	az.routeTable--
-	if az.routeTable == network.ROUTING_TABLE_MIN {
-		az.routeTable = network.ROUTING_TABLE_MAX
-	}
 
 	return nil
 }
@@ -339,10 +332,10 @@ func (az *Azure) configureRoute(table int, link *network.Link) error {
 
 	err = network.AddRoute(link.Ifindex, table, gw)
 	if err != nil {
-		log.Errorf("Failed to added default gateway='%+v' for link='%+v' ifindex='%+v': '%+v'", gw, link.Name, link.Ifindex, err)
+		log.Errorf("Failed to added default gateway='%+v' for link='%+v' ifindex='%+v': '%+v' table='%d': %+v", gw, link.Name, link.Ifindex, table, err)
 	}
 
-	log.Debugf("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v'", gw, link.Name, link.Ifindex)
+	log.Debugf("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, table)
 
 	return nil
 }
