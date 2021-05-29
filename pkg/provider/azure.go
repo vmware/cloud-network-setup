@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"path"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -197,92 +196,16 @@ func (az *Azure) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 			continue
 		}
 
-		existingAddresses, err := network.GetIPv4Addreses(l.Name)
-		if err != nil {
-			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", l.Name, l.Ifindex, err)
-			continue
-		}
-
 		newAddresses, err := az.parseIpv4AddressesFromMetadataByMac(mac)
 		if err != nil {
 			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
 			continue
 		}
 
-		if len(m.addressesByMAC[mac]) > 0 {
-			earlierAddresses := m.addressesByMAC[mac]
-
-			eq := reflect.DeepEqual(newAddresses, earlierAddresses)
-			if eq {
-				log.Debugf("Old metadata addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are equal. Skipping ...",
-					existingAddresses, newAddresses)
-				continue
-			}
-
-			// Purge old addresses
-			for _, i := range earlierAddresses {
-				_, ok = newAddresses[i]
-				if !ok {
-					err = network.RemoveIPAddress(l.Name, i)
-					if err != nil {
-						log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
-						continue
-					} else {
-						log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
-
-						r, ok := m.routingRulesByAddress[i]
-						if ok {
-							m.removeRoutingPolicyRule(r, &l)
-							delete(m.routingRulesByAddress, i)
-						}
-					}
-				}
-			}
-		}
-
-		for i := range newAddresses {
-			_, ok = existingAddresses[i]
-			if !ok {
-				err = network.SetAddress(l.Name, i)
-				if err != nil {
-					log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': +v", i, l.Name, l.Ifindex, err)
-					continue
-				}
-
-				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
-
-				// https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-multiple-ip-addresses-portal#add
-				// echo 150 custom >> /etc/iproute2/rt_tables
-				// ip rule add from 10.0.0.5 lookup custom
-				// ip route add default via 10.0.0.1 dev eth2 table custom
-
-				if err := m.configureRoute(&l); err != nil {
-					continue
-				}
-
-				if err := az.configureRoutingPolicyRule(m, &l, i); err != nil {
-					continue
-				}
-			}
-		}
-
-		delete(m.addressesByMAC, mac)
-
-		var a []string
-		for i := range newAddresses {
-			a = append(a, i)
-		}
-		m.addressesByMAC[mac] = a
+		m.configureNetwork(&l, newAddresses)
 	}
 
 	return nil
-}
-
-func (az *Azure) configureRoutingPolicyRule(m *Enviroment, link *network.Link, address string) error {
-	s := strings.SplitAfter(address, "/")
-	a := strings.TrimSuffix(s[0], "/")
-
-	return m.configureRoutingPolicyRule(link, a)
 }
 
 func (az *Azure) SaveCloudMetadata() error {

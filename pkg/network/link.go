@@ -4,8 +4,6 @@
 package network
 
 import (
-	"net"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )
@@ -16,10 +14,10 @@ type Links struct {
 
 // Link Each interface info
 type Link struct {
-	Name         string
-	Ifindex      int
-	HardwareAddr net.HardwareAddr
-	Addresses    *map[string]bool
+	Name      string
+	Ifindex   int
+	Mac       string
+	Addresses *map[string]bool
 }
 
 // AcquireLinks Fetches link information
@@ -37,9 +35,9 @@ func AcquireLinks() (Links, error) {
 		}
 
 		l := Link{
-			Name:         link.Attrs().Name,
-			Ifindex:      link.Attrs().Index,
-			HardwareAddr: link.Attrs().HardwareAddr,
+			Name:    link.Attrs().Name,
+			Ifindex: link.Attrs().Index,
+			Mac:     link.Attrs().HardwareAddr.String(),
 		}
 
 		links[link.Attrs().HardwareAddr.String()] = l

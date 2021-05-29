@@ -5,6 +5,8 @@ package provider
 
 import (
 	"errors"
+	"reflect"
+	"strings"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -81,6 +83,80 @@ func ConfigureNetworkMetadata(m *Enviroment) error {
 	}
 }
 
+func (m *Enviroment) configureNetwork(link *network.Link, newAddresses map[string]bool) error {
+	existingAddresses, err := network.GetIPv4Addreses(link.Name)
+	if err != nil {
+		log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", link.Name, link.Ifindex, err)
+		return err
+	}
+
+	if len(m.addressesByMAC[link.Mac]) > 0 {
+		earlierAddresses := m.addressesByMAC[link.Mac]
+
+		eq := reflect.DeepEqual(newAddresses, earlierAddresses)
+		if eq {
+			log.Debugf("Old metadata addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are equal. Skipping ...",
+				existingAddresses, newAddresses)
+			return nil
+		}
+
+		// Purge old addresses
+		for _, i := range earlierAddresses {
+			_, ok := newAddresses[i]
+			if !ok {
+				err = network.RemoveIPAddress(link.Name, i)
+				if err != nil {
+					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, link.Name, link.Ifindex, err)
+					continue
+				} else {
+					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, link.Name, link.Ifindex)
+
+					r, ok := m.routingRulesByAddress[i]
+					if ok {
+						m.removeRoutingPolicyRule(r, link)
+						delete(m.routingRulesByAddress, i)
+					}
+				}
+			}
+		}
+	}
+
+	for i := range newAddresses {
+		_, ok := existingAddresses[i]
+		if !ok {
+			err = network.SetAddress(link.Name, i)
+			if err != nil {
+				log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': +v", i, link.Name, link.Ifindex, err)
+				continue
+			}
+
+			log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, link.Name, link.Ifindex)
+
+			// https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-multiple-ip-addresses-portal#add
+			// echo 150 custom >> /etc/iproute2/rt_tables
+			// ip rule add from 10.0.0.5 lookup custom
+			// ip route add default via 10.0.0.1 dev eth2 table custom
+
+			if err := m.configureRoute(link); err != nil {
+				continue
+			}
+
+			if err := m.configureRoutingPolicyRule(link, i); err != nil {
+				continue
+			}
+		}
+	}
+	delete(m.addressesByMAC, link.Mac)
+
+	var a []string
+	for i := range newAddresses {
+		a = append(a, i)
+	}
+	m.addressesByMAC[link.Mac] = a
+
+	return nil
+}
+
 func (m *Enviroment) configureRoute(link *network.Link) error {
 	gw, err := network.GetDefaultIpv4GatewayByLink(link.Ifindex)
 	if err != nil {
@@ -104,8 +180,11 @@ func (m *Enviroment) configureRoute(link *network.Link) error {
 }
 
 func (m *Enviroment) configureRoutingPolicyRule(link *network.Link, address string) error {
+	s := strings.SplitAfter(address, "/")
+	addr := strings.TrimSuffix(s[0], "/")
+
 	rule := &network.IPRoutingRule{
-		Address: address,
+		Address: addr,
 		Table:   m.routeTable + link.Ifindex,
 	}
 

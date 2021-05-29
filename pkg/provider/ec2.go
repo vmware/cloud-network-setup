@@ -354,88 +354,10 @@ func (ec2 *EC2) ConfigureCloudMetadataNetwork(m *Enviroment) error {
 			continue
 		}
 
-		if len(m.addressesByMAC[mac]) > 0 {
-			earlierAddresses := m.addressesByMAC[mac]
-
-			eq := reflect.DeepEqual(newAddresses, earlierAddresses)
-			if eq {
-				log.Debugf("Old metadata addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are equal. Skipping ...",
-					existingAddresses, newAddresses)
-				continue
-			}
-
-			// Purge old addresses
-			for _, i := range earlierAddresses {
-				_, ok = newAddresses[i]
-				if !ok {
-					err = network.RemoveIPAddress(l.Name, i)
-					if err != nil {
-						log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
-						continue
-					} else {
-						log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
-
-						r, ok := m.routingRulesByAddress[i]
-						if ok {
-							m.removeRoutingPolicyRule(r, &l)
-							delete(m.routingRulesByAddress, i)
-						}
-					}
-				}
-			}
-		}
-
-		for i := range newAddresses {
-			_, ok = existingAddresses[i]
-			if !ok {
-				err = network.SetAddress(l.Name, i)
-				if err != nil {
-					log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': +v", i, l.Name, l.Ifindex, err)
-					continue
-				}
-
-				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
-
-				// https://aws.amazon.com/premiumsupport/knowledge-center/ec2-ubuntu-secondary-network-interface/
-
-				// Default gateway for eth1
-				// # ip route add default via 172.31.16.1 dev eth1 table 1000
-
-				// A route for every IP. Hmmm !!! is this required ?
-				// # ip route add 172.31.21.115 dev eth1 table 1000
-				// # ip route add 172.31.18.46 dev eth1 table 1000
-
-				// A policy rule for every IP
-				// # ip rule add from 172.31.21.115 lookup 1000
-				// # ip rule add from 172.31.18.46 lookup 1000
-
-				if err := m.configureRoute(&l); err != nil {
-					continue
-				}
-
-				if err := ec2.configureRoutingPolicyRule(m, &l, i); err != nil {
-					continue
-				}
-			}
-		}
-
-		delete(m.addressesByMAC, mac)
-
-		var a []string
-		for i := range newAddresses {
-			a = append(a, i)
-		}
-		m.addressesByMAC[mac] = a
+		m.configureNetwork(&l, newAddresses)
 	}
 
 	return nil
-}
-
-func (ec2 *EC2) configureRoutingPolicyRule(m *Enviroment, link *network.Link, address string) error {
-	s := strings.SplitAfter(address, "/")
-	a := strings.TrimSuffix(s[0], "/")
-
-	return m.configureRoutingPolicyRule(link, a)
 }
 
 func (ec2 *EC2) SaveCloudMetadata() error {

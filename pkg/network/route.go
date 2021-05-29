@@ -44,7 +44,7 @@ func GetDefaultIpv4GatewayByLink(ifIndex int) (string, error) {
 		}
 	}
 
-	return "", errors.New("not fould")
+	return "", errors.New("not found")
 }
 
 func AddRoute(ifIndex int, table int, gateway string) error {
