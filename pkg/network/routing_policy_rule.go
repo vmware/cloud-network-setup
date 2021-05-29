@@ -15,8 +15,9 @@ const (
 )
 
 type IPRoutingRule struct {
-	Address string
-	Table   int
+	From  string
+	To    string
+	Table int
 }
 
 func AddRoutingPolicyRule(rule *IPRoutingRule) error {
@@ -37,12 +38,19 @@ func AddRoutingPolicyRule(rule *IPRoutingRule) error {
 
 	r := netlink.NewRule()
 	r.Table = rule.Table
-	r.Src = &net.IPNet{IP: net.ParseIP(rule.Address), Mask: net.CIDRMask(32, 32)}
+
+	if len(rule.From) > 0 {
+		r.Src = &net.IPNet{IP: net.ParseIP(rule.From), Mask: net.CIDRMask(32, 32)}
+	}
+
+	if len(rule.To) > 0 {
+		r.Dst = &net.IPNet{IP: net.ParseIP(rule.To), Mask: net.CIDRMask(32, 32)}
+	}
 
 	// find this rule
 	found := ruleExists(rules, *r)
 	if found {
-		log.Debugf("Routing table rules already configured address='%+v' table='%v'", rule.Address, rule.Address)
+		log.Debugf("Routing table rules already configured table='%v'")
 		return nil
 	}
 
@@ -56,7 +64,14 @@ func AddRoutingPolicyRule(rule *IPRoutingRule) error {
 func RemoveRoutingPolicyRule(rule *IPRoutingRule) error {
 	r := netlink.NewRule()
 	r.Table = rule.Table
-	r.Src = &net.IPNet{IP: net.ParseIP(rule.Address), Mask: net.CIDRMask(32, 32)}
+
+	if len(rule.From) > 0 {
+		r.Src = &net.IPNet{IP: net.ParseIP(rule.From), Mask: net.CIDRMask(32, 32)}
+	}
+
+	if len(rule.To) > 0 {
+		r.Dst = &net.IPNet{IP: net.ParseIP(rule.To), Mask: net.CIDRMask(32, 32)}
+	}
 
 	if err := netlink.RuleDel(r); err != nil {
 		return err

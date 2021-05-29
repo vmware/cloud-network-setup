@@ -315,11 +315,6 @@ func parseIpv4AddressesFromMetadata(addresses string, cidr string) (map[string]b
 }
 
 func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
-	links, err := network.AcquireLinks()
-	if err != nil {
-		return err
-	}
-
 	for mac, v := range ec2.macs {
 		j, err := json.Marshal(v)
 		if err != nil {
@@ -329,9 +324,9 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 		n := EC2MAC{}
 		json.Unmarshal([]byte(j), &n)
 
-		l, ok := links.LinksByMAC[mac]
+		l, ok := m.links.LinksByMAC[mac]
 		if !ok {
-			log.Errorf("Failed to find link having MAC Address='%+v': %+v", mac, err)
+			log.Errorf("Failed to find link having MAC Address='%+v'", mac)
 			continue
 		}
 

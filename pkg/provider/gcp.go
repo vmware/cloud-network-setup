@@ -155,13 +155,8 @@ func (g *GCP) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, 
 }
 
 func (g *GCP) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
-	links, err := network.AcquireLinks()
-	if err != nil {
-		return err
-	}
-
 	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
-		l, ok := links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
+		l, ok := m.links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%+v'", g.meta.Instance.Networkinterfaces[i].Mac)
 			continue

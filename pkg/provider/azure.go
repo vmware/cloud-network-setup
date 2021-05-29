@@ -182,17 +182,12 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 }
 
 func (az *Azure) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
-	links, err := network.AcquireLinks()
-	if err != nil {
-		return err
-	}
-
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
 		mac := strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
 
-		l, ok := links.LinksByMAC[mac]
+		l, ok := m.links.LinksByMAC[mac]
 		if !ok {
-			log.Errorf("Failed to find link having MAC Address='%+v': %+v", mac, err)
+			log.Errorf("Failed to find link having MAC Address='%+v'", mac)
 			continue
 		}
 
