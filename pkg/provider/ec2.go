@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -315,7 +314,7 @@ func parseIpv4AddressesFromMetadata(addresses string, cidr string) (map[string]b
 	return m, nil
 }
 
-func (ec2 *EC2) ConfigureCloudMetadataNetwork(m *Enviroment) error {
+func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
@@ -336,21 +335,9 @@ func (ec2 *EC2) ConfigureCloudMetadataNetwork(m *Enviroment) error {
 			continue
 		}
 
-		existingAddresses, err := network.GetIPv4Addreses(l.Name)
-		if err != nil {
-			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", l.Name, l.Ifindex, err)
-			continue
-		}
-
 		newAddresses, err := parseIpv4AddressesFromMetadata(n.LocalIpv4S, n.SubnetIpv4CidrBlock)
 		if err != nil {
 			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
-			continue
-		}
-
-		eq := reflect.DeepEqual(existingAddresses, newAddresses)
-		if eq {
-			log.Debugf("Existing addresses='%+v' and new addresses='%+v' received from AWS(EC2) endpoint are same. Skipping ...", existingAddresses, newAddresses)
 			continue
 		}
 

@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"reflect"
 	"strconv"
 
 	"github.com/go-resty/resty/v2"
@@ -155,7 +154,7 @@ func (g *GCP) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, 
 	return m, nil
 }
 
-func (g *GCP) ConfigureCloudMetadataAddress() error {
+func (g *GCP) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
@@ -168,50 +167,13 @@ func (g *GCP) ConfigureCloudMetadataAddress() error {
 			continue
 		}
 
-		existingAddresses, err := network.GetIPv4Addreses(l.Name)
-		if err != nil {
-			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", l.Name, l.Ifindex, err)
-			continue
-		}
-
 		newAddresses, err := g.parseIpv4AddressesFromMetadataByMac(g.meta.Instance.Networkinterfaces[i].Mac)
 		if err != nil {
 			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
 			continue
 		}
 
-		eq := reflect.DeepEqual(existingAddresses, newAddresses)
-		if eq {
-			log.Debugf("Existing addresses='%+v' and new addresses='%+v' received from GCP endpoint are same. Skipping ...", existingAddresses, newAddresses)
-			continue
-		}
-
-		// Purge old addresses
-		for i := range existingAddresses {
-			_, ok = newAddresses[i]
-			if !ok {
-				err = network.RemoveIPAddress(l.Name, i)
-				if err != nil {
-					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
-					continue
-				} else {
-					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
-				}
-			}
-		}
-
-		for i := range newAddresses {
-			_, ok = existingAddresses[i]
-			if !ok {
-				err = network.SetAddress(l.Name, i)
-				if err != nil {
-					log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': +v", i, l.Name, l.Ifindex, err)
-					continue
-				}
-
-				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
-			}
-		}
+		m.configureNetwork(&l, newAddresses)
 	}
 
 	return nil
