@@ -315,13 +315,13 @@ func parseIpv4AddressesFromMetadata(addresses string, cidr string) (map[string]b
 	return m, nil
 }
 
-func (ec2 *EC2) ConfigureCloudMetadataAddress() error {
+func (ec2 *EC2) ConfigureCloudMetadataNetwork(m *Enviroment) error {
 	links, err := network.AcquireLinks()
 	if err != nil {
 		return err
 	}
 
-	for k, v := range ec2.macs {
+	for mac, v := range ec2.macs {
 		j, err := json.Marshal(v)
 		if err != nil {
 			return err
@@ -330,9 +330,9 @@ func (ec2 *EC2) ConfigureCloudMetadataAddress() error {
 		n := EC2MAC{}
 		json.Unmarshal([]byte(j), &n)
 
-		l, ok := links.LinksByMAC[k]
+		l, ok := links.LinksByMAC[mac]
 		if !ok {
-			log.Errorf("Failed to find link having MAC Address='%+v': %+v", k, err)
+			log.Errorf("Failed to find link having MAC Address='%+v': %+v", mac, err)
 			continue
 		}
 
@@ -354,16 +354,33 @@ func (ec2 *EC2) ConfigureCloudMetadataAddress() error {
 			continue
 		}
 
-		// Purge old addresses
-		for i := range existingAddresses {
-			_, ok = newAddresses[i]
-			if !ok {
-				err = network.RemoveIPAddress(l.Name, i)
-				if err != nil {
-					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
-					continue
-				} else {
-					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+		if len(m.addressesByMAC[mac]) > 0 {
+			earlierAddresses := m.addressesByMAC[mac]
+
+			eq := reflect.DeepEqual(newAddresses, earlierAddresses)
+			if eq {
+				log.Debugf("Old metadata addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are equal. Skipping ...",
+					existingAddresses, newAddresses)
+				continue
+			}
+
+			// Purge old addresses
+			for _, i := range earlierAddresses {
+				_, ok = newAddresses[i]
+				if !ok {
+					err = network.RemoveIPAddress(l.Name, i)
+					if err != nil {
+						log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, l.Name, l.Ifindex, err)
+						continue
+					} else {
+						log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+
+						r, ok := m.routingRulesByAddress[i]
+						if ok {
+							m.removeRoutingPolicyRule(r, &l)
+							delete(m.routingRulesByAddress, i)
+						}
+					}
 				}
 			}
 		}
@@ -377,12 +394,48 @@ func (ec2 *EC2) ConfigureCloudMetadataAddress() error {
 					continue
 				}
 
-				log.Infof("Successfully added address='%+v' on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+				log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, l.Name, l.Ifindex)
+
+				// https://aws.amazon.com/premiumsupport/knowledge-center/ec2-ubuntu-secondary-network-interface/
+
+				// Default gateway for eth1
+				// # ip route add default via 172.31.16.1 dev eth1 table 1000
+
+				// A route for every IP. Hmmm !!! is this required ?
+				// # ip route add 172.31.21.115 dev eth1 table 1000
+				// # ip route add 172.31.18.46 dev eth1 table 1000
+
+				// A policy rule for every IP
+				// # ip rule add from 172.31.21.115 lookup 1000
+				// # ip rule add from 172.31.18.46 lookup 1000
+
+				if err := m.configureRoute(&l); err != nil {
+					continue
+				}
+
+				if err := ec2.configureRoutingPolicyRule(m, &l, i); err != nil {
+					continue
+				}
 			}
 		}
+
+		delete(m.addressesByMAC, mac)
+
+		var a []string
+		for i := range newAddresses {
+			a = append(a, i)
+		}
+		m.addressesByMAC[mac] = a
 	}
 
 	return nil
+}
+
+func (ec2 *EC2) configureRoutingPolicyRule(m *Enviroment, link *network.Link, address string) error {
+	s := strings.SplitAfter(address, "/")
+	a := strings.TrimSuffix(s[0], "/")
+
+	return m.configureRoutingPolicyRule(link, a)
 }
 
 func (ec2 *EC2) SaveCloudMetadata() error {

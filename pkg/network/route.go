@@ -30,21 +30,21 @@ func GetDefaultIpv4Gateway() (string, error) {
 	return "", errors.New("dailed to find default route")
 }
 
-func IsDefaultIpv4GatewayByLinkPresent(ifIndex int) bool {
+func GetDefaultIpv4GatewayByLink(ifIndex int) (string, error) {
 	routes, err := netlink.RouteList(nil, syscall.AF_INET)
 	if err != nil {
-		return false
+		return "", err
 	}
 
 	for _, route := range routes {
 		if route.Dst == nil || route.Dst.String() == "0.0.0.0/0" {
 			if route.LinkIndex == ifIndex {
-				return true
+				return route.Gw.To4().String(), nil
 			}
 		}
 	}
 
-	return false
+	return "", errors.New("not fould")
 }
 
 func AddRoute(ifIndex int, table int, gateway string) error {
