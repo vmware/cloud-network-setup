@@ -69,7 +69,7 @@ func configureSupplementaryLinks(s string) error {
 	for _, w := range words {
 		link, err := net.InterfaceByName(w)
 		if err != nil {
-			log.Warningf("Failed to find link='%s'. Ignoring ...: %+v", w)
+			log.Warningf("Failed to find link='%s'. Ignoring ...: %+v", w, err)
 			continue
 		}
 

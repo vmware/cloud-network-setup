@@ -278,6 +278,9 @@ func displayGCPCloudSystemMetadata(g *provider.GCPMetaData, provider string) {
 	fmt.Printf("       Instance Virtualclock Drifttoken: %+v \n", g.Instance.Virtualclock.Drifttoken)
 	fmt.Printf("                                   Zone: %+v \n", g.Instance.Zone)
 	fmt.Printf("                       Remainingcputime: %+v \n", g.Instance.Remainingcputime)
+}
+
+func displayGCPCloudProjectMetadata(g *provider.GCPMetaData) {
 	fmt.Printf("                              Projectid: %+v \n", g.Project.Projectid)
 	fmt.Printf("                       Numericprojectid: %+v \n", g.Project.Numericprojectid)
 	fmt.Printf(" Instane Serviceaccounts Default Aliase: %+v \n", g.Instance.Serviceaccounts.Default.Aliases)
@@ -374,6 +377,24 @@ func fetchSSHKeysFromCloudMetadata() {
 		json.Unmarshal(resp, &f)
 
 		displayGCPCloudSSHKeysFromMetadata(&f)
+	default:
+		fmt.Printf("Failed to detect cloud environment: '%+v'", err)
+		return
+	}
+}
+
+func fetchGCPCloudProjectMetadata() {
+	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/system")
+	if err != nil {
+		return
+	}
+
+	switch cloud.DetectCloud() {
+	case cloud.GCP:
+		f := provider.GCPMetaData{}
+		json.Unmarshal(resp, &f)
+
+		displayGCPCloudProjectMetadata(&f)
 	default:
 		fmt.Printf("Failed to detect cloud environment: '%+v'", err)
 		return
@@ -517,7 +538,7 @@ func main() {
 				{
 					Name:    "ssh-keys",
 					Aliases: []string{"k"},
-					Usage:   "Display Display SSH key",
+					Usage:   "Display SSH key",
 					Action: func(c *cli.Context) error {
 						fetchSSHKeysFromCloudMetadata()
 						return nil
@@ -565,6 +586,15 @@ func main() {
 					Usage:   "Display EC2 data identity credentials rsa2048",
 					Action: func(c *cli.Context) error {
 						fetchDynamicInstanceIdentityFromCloudMetadata("rsa2048")
+						return nil
+					},
+				},
+				{
+					Name:    "project",
+					Aliases: []string{"p"},
+					Usage:   "Display GCP project metadata",
+					Action: func(c *cli.Context) error {
+						fetchGCPCloudProjectMetadata()
 						return nil
 					},
 				},
