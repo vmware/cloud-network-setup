@@ -6,7 +6,6 @@ package network
 import (
 	"net"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )
 
@@ -50,7 +49,6 @@ func AddRoutingPolicyRule(rule *IPRoutingRule) error {
 	// find this rule
 	found := ruleExists(rules, *r)
 	if found {
-		log.Debugf("Routing table rules already configured table='%v'")
 		return nil
 	}
 

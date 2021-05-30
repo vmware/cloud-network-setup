@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,6 +24,65 @@ import (
 	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/utils"
 )
+
+func createStateDirsAndFiles(provider string) error {
+	err := os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	err = utils.CreateStatefile("/run/cloud-network-setup/system")
+	if err != nil {
+		return err
+	}
+
+	links, err := network.AcquireLinks()
+	if err != nil {
+		return err
+	}
+
+	for _, l := range links.LinksByMAC {
+		err = utils.CreateLinkStatefile("/run/cloud-network-setup/links", l.Ifindex)
+		if err != nil {
+			return err
+		}
+	}
+
+	switch provider {
+	case cloud.AWS:
+		err := os.MkdirAll("/run/cloud-network-setup/provider/ec2", os.ModePerm)
+		if err != nil {
+			return err
+		}
+	default:
+	}
+
+	return nil
+}
+
+func configureSupplimentaryLinks(s string) error {
+	words := strings.Fields(s)
+	if len(words) <= 0 {
+		return nil
+	}
+
+	for _, w := range words {
+		link, err := net.InterfaceByName(w)
+		if err != nil {
+			continue
+		}
+
+		err = network.ConfigureByIndex(link.Index)
+		if err != nil {
+			log.Errorf("Failed to configure network for link='%s' ifindex='%d': %+v", link.Name, link.Index, err)
+			return err
+		} else {
+			log.Debugf("Successfully configured network for link='%s' ifindex='%d'", link.Name, link.Index)
+		}
+	}
+
+	return nil
+}
 
 func retriveMetaDataAndConfigure(m *provider.Enviroment) error {
 	err := provider.AcquireCloudMetadata(m)
@@ -44,40 +104,6 @@ func retriveMetaDataAndConfigure(m *provider.Enviroment) error {
 	}
 
 	return nil
-}
-
-func createStateDirsAndFiles(provider string) {
-	err := os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
-	if err != nil {
-		log.Errorf("Failed create run dir '/run/cloud-network-setup/links': '%+v'", err)
-	}
-
-	err = utils.CreateStatefile("/run/cloud-network-setup/system")
-	if err != nil {
-		log.Errorf("Failed create state file '/run/cloud-network-setup/system': '%+v'", err)
-	}
-
-	links, err := network.AcquireLinks()
-	if err != nil {
-		return
-	}
-
-	for _, l := range links.LinksByMAC {
-		err = utils.CreateLinkStatefile("/run/cloud-network-setup/links", l.Ifindex)
-		if err != nil {
-			log.Errorf("Failed to create state file for link='%+v' index='%+v'", l.Name, l.Ifindex)
-		}
-	}
-
-	switch provider {
-	case cloud.AWS:
-		err := os.MkdirAll("/run/cloud-network-setup/provider/ec2", os.ModePerm)
-		if err != nil {
-			log.Errorf("Failed create run dir '/run/cloud-network-setup/ec2': '%+v'", err)
-			return
-		}
-	default:
-	}
 }
 
 func main() {
@@ -102,7 +128,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	createStateDirsAndFiles(cloud)
+	err = createStateDirsAndFiles(cloud)
+	if err != nil {
+		log.Warningf("Failed to create run directories or state files")
+	}
+
+	configureSupplimentaryLinks(c.Network.Supplementary)
 
 	err = retriveMetaDataAndConfigure(m)
 	if err != nil {

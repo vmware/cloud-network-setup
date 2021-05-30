@@ -26,7 +26,7 @@ The `[System]` section takes following Keys:
 
 `LogLevel=`
 
-Specifies the log level. Takes `debug`, `info`, `warning`. Defaults to `info`
+Specifies the log level. Takes one of `Trace`, `Debug`, `Info`, `Warning`, `Error`, `Fatal` and `Panic`. Defaults to `info`. See [sirupsen](https://github.com/sirupsen/logrus#level-logging)
 
 `LogFormat=`
 
@@ -46,6 +46,13 @@ Specifies the IP address which the local REST API server will listen. Defaults t
 
 Specifies the IP port which the local REST API server will listen. Defaults to `5209`.
 
+`Supplementary=`
+
+A whitespace-separated list of matching the device name. Specifies the interfaces which will be configured a default gateway and routing policy
+rules for each Ip address including primary address. Defaults to unset.
+
+Note that when there are multiple interfaces, the secondary interface becomes unreachable. When `Supplementary=` is set, the default route and routing policy
+rules are automatically configured.
 
  ```bash
 ❯ cat /etc/cloud-network-setup/cloud-network.toml
@@ -82,6 +89,29 @@ May 17 21:49:59 Zeus systemd[1]: cloud-network-setup.service: Got notification m
 ----
 
 `cnctl` is a CLI tool allows to view metadata, which is retirved from the endpoint metadata server.
+
+```bash
+❯ cnctl status system
+    Cloud provider: aws
+             AmiID: ami-005f15863xxxxxxxx
+          Location: 0
+BlockDeviceMapping: {Ami:xvda Root:/dev/xvda}
+          Hostname: Zeus.us-west-2.compute.internal
+    PublicHostname: Zeuspublic.us-west-2.compute.amazonaws.com
+     LocalHostname: Zeus.us-west-2.compute.internal
+    InstanceAction: none
+        InstanceID: i-0c8c1test
+ InstanceLifeCycle: on-demand
+      InstanceType: t4g.micro
+         Placement: {AvailabilityZone:us-west-2d AvailabilityZoneID:usw2-az4 Region:us-west-2}
+           Profile: default-hvm
+       Mac Address: 0e:c5:3f:c5:33:a5
+         LocalIpv4: 192.31.63.114
+        PublicIpv4: 02:42:8d:4c:0c:cf
+   Services Domain: amazonaws.com
+Services Partition: aws
+```
+
 
 ```bash
 ❯ cnctl status network

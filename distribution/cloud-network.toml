@@ -1,8 +1,9 @@
 [System]
 RefreshTimer="300s"
-LogLevel="debug"
+LogLevel="info"
 LogFormat="text"
 
 [Network]
 Address="127.0.0.1"
 Port="5209"
+Supplementary="ens3"

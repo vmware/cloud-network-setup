@@ -25,13 +25,14 @@ const (
 var (
 	IPFlag           string
 	PortFlag         string
+	MultiLink        string
 	LogLevelFlag     string
 	LogFormatFlag    string
 	LogTimeStampFlag bool
 	RefreshTimerFlag time.Duration
 )
 
-//Config config file key value
+// Config config file key value
 type Config struct {
 	Network `mapstructure:"Network"`
 	System  `mapstructure:"System"`
@@ -39,8 +40,9 @@ type Config struct {
 
 //Network IP Address and Port
 type Network struct {
-	Address string
-	Port    string
+	Address       string
+	Port          string
+	Supplementary string
 }
 
 type System struct {

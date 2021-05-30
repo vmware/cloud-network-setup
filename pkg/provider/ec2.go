@@ -17,7 +17,6 @@ import (
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
 
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
@@ -315,59 +314,6 @@ func parseIpv4AddressesFromMetadata(addresses string, cidr string) (map[string]b
 	return m, nil
 }
 
-func configureNetworkForPrimary(m *Enviroment) error {
-	linkList, err := netlink.LinkList()
-	if err != nil {
-		return err
-	}
-
-	for _, link := range linkList {
-		if link.Attrs().Name == "lo" {
-			continue
-		}
-
-		if link.Attrs().Index == 2 {
-			gw, err := network.GetDefaultIpv4GatewayByLink(link.Attrs().Index)
-			if err != nil {
-				log.Infof("Failed to find default gateway for the link ifindex='%s': '%+v'", link.Attrs().Index, err)
-				return err
-			}
-
-			err = network.AddRoute(link.Attrs().Index, m.routeTable+link.Attrs().Index, gw)
-			if err != nil {
-				log.Errorf("Failed to add default gateway='%+v' for link ifindex='%+v' '%+v' table='%d': %+v", gw, link.Attrs().Index, err)
-				return err
-			} else {
-				log.Debugf("Successfully added default gateway='%+v' for link  ifindex='%+v'", gw, link.Attrs().Index)
-			}
-
-			addresses, err := network.GetIPv4Addreses(link.Attrs().Name)
-			if err != nil {
-				return err
-			}
-
-			for addr := range addresses {
-				a := strings.TrimSuffix(strings.SplitAfter(addr, "/")[0], "/")
-
-				from := &network.IPRoutingRule{
-					From:  a,
-					Table: m.routeTable + link.Attrs().Index,
-				}
-
-				err := network.AddRoutingPolicyRule(from)
-				if err != nil {
-					log.Errorf("Failed to add routing policy rule 'from' for link ifindex='%+v': %+v", link.Attrs().Index, err)
-					return err
-				} else {
-					log.Debugf("Successfully added routing policy rule 'from' for link ifindex='%+v'", link.Attrs().Index)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 	for mac, v := range ec2.macs {
 		j, err := json.Marshal(v)
@@ -378,7 +324,7 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 		n := EC2MAC{}
 		json.Unmarshal([]byte(j), &n)
 
-		l, ok := m.links.LinksByMAC[mac]
+		link, ok := m.links.LinksByMAC[mac]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%+v'", mac)
 			continue
@@ -386,17 +332,21 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 
 		newAddresses, err := parseIpv4AddressesFromMetadata(n.LocalIpv4S, n.SubnetIpv4CidrBlock)
 		if err != nil {
-			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
+			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", link.Name, link.Ifindex, err)
 			continue
 		}
 
-		m.configureNetwork(&l, newAddresses)
+		err = m.configureNetwork(&link, newAddresses)
+		if err != nil {
+			continue
+		}
 
 		// EC2's primary interface looses connectivity if the second interface gets configured
 		// Hence add a default route for the primary interface too and rules for each address
-
-		configureNetworkForPrimary(m)
-
+		err = network.ConfigureByIndex(2)
+		if err != nil {
+			log.Errorf("Failed to configure network for link='%+v' ifindex='%+v': %+v", link.Name, link.Ifindex, err)
+		}
 	}
 
 	return nil
