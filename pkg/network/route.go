@@ -47,6 +47,23 @@ func GetDefaultIpv4GatewayByLink(ifIndex int) (string, error) {
 	return "", errors.New("not found")
 }
 
+func GetIpv4GatewayByLink(ifIndex int) (string, error) {
+	routes, err := netlink.RouteList(nil, syscall.AF_INET)
+	if err != nil {
+		return "", err
+	}
+
+	for _, route := range routes {
+		if route.LinkIndex == ifIndex {
+			if route.Gw != nil && route.Gw.To4().String() != "" {
+				return route.Gw.To4().String(), nil
+			}
+		}
+	}
+
+	return "", errors.New("not found")
+}
+
 func AddRoute(ifIndex int, table int, gateway string) error {
 	gw := net.ParseIP(gateway).To4()
 

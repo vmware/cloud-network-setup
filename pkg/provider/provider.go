@@ -179,15 +179,10 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 }
 
 func (m *Environment) configureRoute(link *network.Link) error {
-	gw, err := network.GetDefaultIpv4GatewayByLink(link.Ifindex)
+	gw, err := network.GetIpv4Gateway(link.Ifindex)
 	if err != nil {
-		log.Infof("Failed to find default gateway for the link='%s' ifindex='%d. Looking for any default GW instead: '%+v'", link.Name, link.Ifindex, err)
-
-		gw, err = network.GetDefaultIpv4Gateway()
-		if err != nil {
-			log.Errorf("Failed to determine default gateway: '%+v'", err)
-			return err
-		}
+		log.Infof("Failed to find gateway for the link='%s' ifindex='%d: '%+v'", link.Name, link.Ifindex, err)
+		return err
 	}
 
 	err = network.AddRoute(link.Ifindex, m.routeTable+link.Ifindex, gw)

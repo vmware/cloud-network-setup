@@ -21,12 +21,9 @@ func ConfigureByIndex(ifIndex int) error {
 		}
 
 		if link.Attrs().Index == ifIndex {
-			gw, err := GetDefaultIpv4GatewayByLink(link.Attrs().Index)
+			gw, err := GetIpv4Gateway(link.Attrs().Index)
 			if err != nil {
-				gw, err = GetDefaultIpv4Gateway()
-				if err != nil {
-					return err
-				}
+				return err
 			}
 
 			err = AddRoute(link.Attrs().Index, ROUTE_TABLE_BASE+link.Attrs().Index, gw)
@@ -56,4 +53,20 @@ func ConfigureByIndex(ifIndex int) error {
 	}
 
 	return nil
+}
+
+func GetIpv4Gateway(ifIndex int) (string, error) {
+	gw, err := GetDefaultIpv4GatewayByLink(ifIndex)
+	if err != nil {
+		gw, err = GetIpv4GatewayByLink(ifIndex)
+		if err != nil {
+			// Try Harder ?
+			gw, err = GetDefaultIpv4Gateway()
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+
+	return gw, nil
 }
