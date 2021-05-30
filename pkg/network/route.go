@@ -27,7 +27,7 @@ func GetDefaultIpv4Gateway() (string, error) {
 		}
 	}
 
-	return "", errors.New("dailed to find default route")
+	return "", errors.New("not found")
 }
 
 func GetDefaultIpv4GatewayByLink(ifIndex int) (string, error) {

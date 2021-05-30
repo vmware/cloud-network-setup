@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
@@ -24,6 +25,7 @@ import (
 
 func fetchCloudMetadata(url string) ([]byte, error) {
 	client := resty.New()
+	client.SetTimeout(time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond)
 
 	resp, err := client.R().Get(url)
 	if resp.StatusCode() != 200 {
@@ -169,7 +171,7 @@ func fetchCloudNetworkMetadata() error {
 
 		displayGCPCloudNetworkMetadata(&links, &f)
 	default:
-		fmt.Printf("Unsupported cloud enviroment")
+		fmt.Printf("Unsupported cloud environment")
 	}
 
 	return nil
@@ -310,7 +312,7 @@ func fetchCloudSystemMetadata() {
 
 		displayGCPCloudSystemMetadata(&f, e)
 	default:
-		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
+		fmt.Printf("Failed to detect cloud environment: '%+v'", err)
 		return
 	}
 }
@@ -373,7 +375,7 @@ func fetchSSHKeysFromCloudMetadata() {
 
 		displayGCPCloudSSHKeysFromMetadata(&f)
 	default:
-		fmt.Printf("Failed to detect cloud enviroment: '%+v'", err)
+		fmt.Printf("Failed to detect cloud environment: '%+v'", err)
 		return
 	}
 }

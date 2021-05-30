@@ -14,10 +14,13 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
 )
@@ -149,7 +152,11 @@ func NewEC2() *EC2 {
 }
 
 func fetchCloudMetadataByURL(url string) []string {
-	resp, err := http.Get(url)
+	client := http.Client{
+		Timeout: time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond,
+	}
+
+	resp, err := client.Get(url)
 	if err != nil {
 		log.Errorf("Failed to fetch instance metadata from endpoint: '%v'", err)
 		return nil
@@ -201,7 +208,11 @@ func fetchCloudMetadataLoop(url string) map[string]interface{} {
 }
 
 func fetchMACAddresses(url string) ([]string, error) {
-	resp, err := http.Get(url)
+	client := http.Client{
+		Timeout: time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond,
+	}
+
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -221,22 +232,16 @@ func fetchMACAddresses(url string) ([]string, error) {
 }
 
 func fetchMetadata(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
+	client := resty.New()
+	client.SetTimeout(time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond)
+
+	resp, err := client.R().Get(url)
+	if resp.StatusCode() != 200 {
+		log.Errorf("Failed to fetch metadata from EC2 Instance Metadata Service: '%+v'", resp.StatusCode())
 		return nil, err
 	}
 
-	if resp.StatusCode != 200 {
-		return nil, errors.New("unexpected response when fetching instance credentials")
-	}
-	defer resp.Body.Close()
-
-	raw, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return raw, nil
+	return resp.Body(), nil
 }
 
 func (ec2 *EC2) FetchCloudMetadata() error {
@@ -271,7 +276,13 @@ func (ec2 *EC2) FetchCloudMetadata() error {
 	}
 
 	s := fetchCloudMetadataLoop("http://" + EC2Endpoint + EC2MetaDataURLBase)
+	if len(s) <= 0 {
+		return errors.New("failed to fetch metadata")
+	}
 	n := fetchCloudMetadataLoop("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataNetwork)
+	if len(s) <= 0 {
+		return errors.New("failed to fetch metadata")
+	}
 
 	var cred EC2Credentials
 	json.Unmarshal(c, &cred)

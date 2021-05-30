@@ -16,9 +16,10 @@ import (
 
 // App Version
 const (
-	Version  = "0.1"
-	ConfPath = "/etc/cloud-network-setup"
-	ConfFile = "cloud-network"
+	Version                   = "0.1"
+	ConfPath                  = "/etc/cloud-network-setup"
+	ConfFile                  = "cloud-network"
+	DefaultHttpRequestTimeout = 10000
 )
 
 // flag

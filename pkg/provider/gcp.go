@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/utils"
 )
@@ -120,6 +122,7 @@ func NewGCP() *GCP {
 
 func (g *GCP) FetchCloudMetadata() error {
 	client := resty.New()
+	client.SetTimeout(time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond)
 	client.SetHeader("Metadata-Flavor", "Google")
 
 	resp, err := client.R().Get("http://" + GCPIMDSRESTEndpoint + GCPMetadataURLBase)
