@@ -43,7 +43,7 @@ func SetAddress(name string, address string) error {
 	return nil
 }
 
-func GetIPv4Addreses(ifName string) (map[string]bool, error) {
+func GetIPv4Addresses(ifName string) (map[string]bool, error) {
 	m := make(map[string]bool)
 
 	link, err := netlink.LinkByName(ifName)

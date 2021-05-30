@@ -60,7 +60,7 @@ func createStateDirsAndFiles(provider string) error {
 	return nil
 }
 
-func configureSupplimentaryLinks(s string) error {
+func configureSupplementaryLinks(s string) error {
 	words := strings.Fields(s)
 	if len(words) <= 0 {
 		return nil
@@ -69,7 +69,7 @@ func configureSupplimentaryLinks(s string) error {
 	for _, w := range words {
 		link, err := net.InterfaceByName(w)
 		if err != nil {
-			continue
+			return err
 		}
 
 		err = network.ConfigureByIndex(link.Index)
@@ -84,7 +84,7 @@ func configureSupplimentaryLinks(s string) error {
 	return nil
 }
 
-func retriveMetaDataAndConfigure(m *provider.Enviroment) error {
+func retriveMetaDataAndConfigure(m *provider.Environment) error {
 	err := provider.AcquireCloudMetadata(m)
 	if err != nil {
 		log.Errorf("Failed to fetch cloud metadata from endpoint")
@@ -111,11 +111,11 @@ func main() {
 
 	cloud := cloud.DetectCloud()
 	if len(cloud) <= 0 {
-		log.Fatal("Failed to detect cloud enviroment, Aborting ...")
+		log.Fatal("Failed to detect cloud environment, Aborting ...")
 		os.Exit(1)
 	}
 
-	log.Infof("Detected cloud enviroment: '%+v'", cloud)
+	log.Infof("Detected cloud environment: '%+v'", cloud)
 
 	c, err := conf.Parse()
 	if err != nil {
@@ -133,12 +133,12 @@ func main() {
 		log.Warningf("Failed to create run directories or state files")
 	}
 
-	configureSupplimentaryLinks(c.Network.Supplementary)
-
 	err = retriveMetaDataAndConfigure(m)
 	if err != nil {
 		log.Errorf("Failed to fetch instance metadata and apply to links: %+v ", err)
 	}
+
+	configureSupplementaryLinks(c.Network.Supplementary)
 
 	// Periodic timer to fetch data from endpoint
 	go func() {

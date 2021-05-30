@@ -314,7 +314,7 @@ func parseIpv4AddressesFromMetadata(addresses string, cidr string) (map[string]b
 	return m, nil
 }
 
-func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
+func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Environment) error {
 	for mac, v := range ec2.macs {
 		j, err := json.Marshal(v)
 		if err != nil {
@@ -424,19 +424,19 @@ func (ec2 *EC2) LinkSaveCloudMetadata() error {
 	return nil
 }
 
-func (e *Enviroment) routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
+func (e *Environment) routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
 	utils.JSONResponse(e.ec2.system, rw)
 }
 
-func (e *Enviroment) routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
+func (e *Environment) routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
 	utils.JSONResponse(e.ec2.network, rw)
 }
 
-func (e *Enviroment) routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
+func (e *Environment) routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
 	utils.JSONResponse(e.ec2.credentials, rw)
 }
 
-func (e *Enviroment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
+func (e *Environment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
 	if strings.HasSuffix(r.URL.Path, "document") {
 		utils.JSONResponse(e.ec2.document, rw)
 	} else if strings.HasSuffix(r.URL.Path, "pkcs7") {
@@ -448,7 +448,7 @@ func (e *Enviroment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter,
 	}
 }
 
-func RegisterRouterEC2(r *mux.Router, e *Enviroment) {
+func RegisterRouterEC2(r *mux.Router, e *Environment) {
 	r.HandleFunc("/system", e.routerGetEC2System).Methods("GET")
 	r.HandleFunc("/network", e.routerGetEC2Network).Methods("GET")
 	r.HandleFunc("/credentials", e.routerGetEC2Credentials).Methods("GET")

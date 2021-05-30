@@ -15,7 +15,7 @@ import (
 	"github.com/cloud-network-setup/pkg/network"
 )
 
-type Enviroment struct {
+type Environment struct {
 	Kind string
 
 	az  *Azure
@@ -29,8 +29,8 @@ type Enviroment struct {
 	routingRulesByAddressTo   map[string]*network.IPRoutingRule
 }
 
-func New(provider string) *Enviroment {
-	m := &Enviroment{
+func New(provider string) *Environment {
+	m := &Environment{
 		Kind:                      provider,
 		routeTable:                network.ROUTE_TABLE_BASE,
 		addressesByMAC:            make(map[string][]string),
@@ -51,7 +51,7 @@ func New(provider string) *Enviroment {
 	return m
 }
 
-func AcquireCloudMetadata(m *Enviroment) error {
+func AcquireCloudMetadata(m *Environment) error {
 	var err error
 
 	m.links, err = network.AcquireLinks()
@@ -68,7 +68,7 @@ func AcquireCloudMetadata(m *Enviroment) error {
 	case cloud.GCP:
 		err = m.gcp.FetchCloudMetadata()
 	default:
-		return errors.New("unknown cloud enviroment")
+		return errors.New("unknown cloud environment")
 	}
 
 	if err != nil {
@@ -79,7 +79,7 @@ func AcquireCloudMetadata(m *Enviroment) error {
 	return nil
 }
 
-func ConfigureNetworkMetadata(m *Enviroment) error {
+func ConfigureNetworkMetadata(m *Environment) error {
 	switch m.Kind {
 	case cloud.Azure:
 		return m.az.ConfigureNetworkFromCloudMeta(m)
@@ -88,12 +88,12 @@ func ConfigureNetworkMetadata(m *Enviroment) error {
 	case cloud.GCP:
 		return m.gcp.ConfigureNetworkFromCloudMeta(m)
 	default:
-		return errors.New("unknown cloud enviroment")
+		return errors.New("unknown cloud environment")
 	}
 }
 
-func (m *Enviroment) configureNetwork(link *network.Link, newAddresses map[string]bool) error {
-	existingAddresses, err := network.GetIPv4Addreses(link.Name)
+func (m *Environment) configureNetwork(link *network.Link, newAddresses map[string]bool) error {
+	existingAddresses, err := network.GetIPv4Addresses(link.Name)
 	if err != nil {
 		log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", link.Name, link.Ifindex, err)
 		return err
@@ -178,7 +178,7 @@ func (m *Enviroment) configureNetwork(link *network.Link, newAddresses map[strin
 	return nil
 }
 
-func (m *Enviroment) configureRoute(link *network.Link) error {
+func (m *Environment) configureRoute(link *network.Link) error {
 	gw, err := network.GetDefaultIpv4GatewayByLink(link.Ifindex)
 	if err != nil {
 		log.Infof("Failed to find default gateway for the link='%s' ifindex='%d. Looking for any default GW instead: '%+v'", link.Name, link.Ifindex, err)
@@ -201,7 +201,7 @@ func (m *Enviroment) configureRoute(link *network.Link) error {
 	return nil
 }
 
-func (m *Enviroment) configureRoutingPolicyRule(link *network.Link, address string) error {
+func (m *Environment) configureRoutingPolicyRule(link *network.Link, address string) error {
 	s := strings.SplitAfter(address, "/")
 	addr := strings.TrimSuffix(s[0], "/")
 
@@ -236,7 +236,7 @@ func (m *Enviroment) configureRoutingPolicyRule(link *network.Link, address stri
 	return nil
 }
 
-func (m *Enviroment) removeRoutingPolicyRule(address string, link *network.Link) error {
+func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link) error {
 	rule, ok := m.routingRulesByAddressFrom[address]
 	if ok {
 		err := network.RemoveRoutingPolicyRule(rule)
@@ -263,7 +263,7 @@ func (m *Enviroment) removeRoutingPolicyRule(address string, link *network.Link)
 	return nil
 }
 
-func SaveMetaData(m *Enviroment) error {
+func SaveMetaData(m *Environment) error {
 	switch m.Kind {
 	case cloud.Azure:
 		if err := m.az.SaveCloudMetadata(); err != nil {
@@ -294,13 +294,13 @@ func SaveMetaData(m *Enviroment) error {
 			return err
 		}
 	default:
-		return errors.New("unknown cloud enviroment")
+		return errors.New("unknown cloud environment")
 	}
 
 	return nil
 }
 
-func RegisterRouterCloud(r *mux.Router, e *Enviroment) {
+func RegisterRouterCloud(r *mux.Router, e *Environment) {
 	n := r.PathPrefix("/cloud").Subrouter()
 
 	switch e.Kind {

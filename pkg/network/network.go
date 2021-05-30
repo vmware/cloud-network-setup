@@ -34,7 +34,7 @@ func ConfigureByIndex(ifIndex int) error {
 				return err
 			}
 
-			addresses, err := GetIPv4Addreses(link.Attrs().Name)
+			addresses, err := GetIPv4Addresses(link.Attrs().Name)
 			if err != nil {
 				return err
 			}

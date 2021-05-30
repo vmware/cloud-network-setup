@@ -22,8 +22,8 @@ const (
 	// GCP REST Endpoint Metadata endpoint.
 	GCPIMDSRESTEndpoint string = "metadata.google.internal"
 
-	// GCP Metadta URLBase
-	GCPMetadtaURLBase string = "/computeMetadata/v1/?recursive=true"
+	// GCP Metadata URLBase
+	GCPMetadataURLBase string = "/computeMetadata/v1/?recursive=true"
 )
 
 type GCP struct {
@@ -122,7 +122,7 @@ func (g *GCP) FetchCloudMetadata() error {
 	client := resty.New()
 	client.SetHeader("Metadata-Flavor", "Google")
 
-	resp, err := client.R().Get("http://" + GCPIMDSRESTEndpoint + GCPMetadtaURLBase)
+	resp, err := client.R().Get("http://" + GCPIMDSRESTEndpoint + GCPMetadataURLBase)
 	if resp.StatusCode() != 200 {
 		log.Errorf("Failed to fetch metadata from GCP Instance Metadata Service: '%+v'", resp.StatusCode())
 		return err
@@ -154,7 +154,7 @@ func (g *GCP) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, 
 	return m, nil
 }
 
-func (g *GCP) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
+func (g *GCP) ConfigureNetworkFromCloudMeta(m *Environment) error {
 	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
 		l, ok := m.links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !ok {
@@ -164,7 +164,7 @@ func (g *GCP) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 
 		newAddresses, err := g.parseIpv4AddressesFromMetadataByMac(g.meta.Instance.Networkinterfaces[i].Mac)
 		if err != nil {
-			log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
+			log.Errorf("Failed to parse Ip addresses of link='%+v' ifindex='%+v' from metadata: %+v", l.Name, l.Ifindex, err)
 			continue
 		}
 
@@ -177,7 +177,7 @@ func (g *GCP) ConfigureNetworkFromCloudMeta(m *Enviroment) error {
 func (g *GCP) SaveCloudMetadata() error {
 	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", g.meta)
 	if err != nil {
-		log.Errorf("Failed to write system file: %+v", err)
+		log.Errorf("Failed to write to system file: %+v", err)
 		return err
 	}
 
@@ -207,12 +207,12 @@ func (g *GCP) LinkSaveCloudMetadata() error {
 	return nil
 }
 
-func (e *Enviroment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
+func (e *Environment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
 	utils.JSONResponse(e.gcp.meta, rw)
 
 }
 
-func RegisterRouterGCP(r *mux.Router, e *Enviroment) {
+func RegisterRouterGCP(r *mux.Router, e *Environment) {
 	r.HandleFunc("/network", e.routerGetGCP).Methods("GET")
 	r.HandleFunc("/system", e.routerGetGCP).Methods("GET")
 }

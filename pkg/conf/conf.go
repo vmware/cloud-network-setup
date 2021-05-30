@@ -114,7 +114,7 @@ func Parse() (*Config, error) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		logrus.Warningf("Faild to parse config file. Using defaults: '%+v'", err)
+		logrus.Warningf("Failed to parse config file. Using defaults: '%+v'", err)
 
 		flag.Parse()
 		return nil, err

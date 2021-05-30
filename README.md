@@ -1,7 +1,7 @@
 #### cloud-network-setup
 ----
 
-```cloud-network-setup``` configures network in cloud environment. In cloud environment instances are set public IP and private IP. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured via DHCP. This project is adopting towards cloud network enviroment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign ip and routes. When `cloud-network-setup` is installed, it automatically configures network interfaces in cloud frameworks.  Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IPv4 addresses from the metadata server endpoint and configures them on the interface, if any.
+```cloud-network-setup``` configures network in cloud environment. In cloud environment instances are set public IP and private IP. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured via DHCP. This project is adopting towards cloud network environment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign ip and routes. When `cloud-network-setup` is installed, it automatically configures network interfaces in cloud frameworks.  Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IPv4 addresses from the metadata server endpoint and configures them on the interface, if any.
 
 A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance metadata is saved in per link basis in the directory `/run/cloud-network-setup`.
 
@@ -34,7 +34,7 @@ Specifies the log format. Takes one of text or json. Takes one of `text` or `jso
 
 `RefreshTimer=`
 
-Specifies the time interval, is the amount of time taken to retrive the data from metadata endpoint.
+Specifies the time interval, is the amount of time taken to retrieve the data from metadata endpoint.
 
 The `[Network]` section takes following Keys:
 
@@ -68,7 +68,7 @@ Port="5209"
 
 ```bash
 ❯ sudo systemctl status cloud-network-setup.service
-● cloud-network-setup.service - Configures network in cloud enviroment
+● cloud-network-setup.service - Configures network in cloud environment
      Loaded: loaded (/usr/lib/systemd/system/cloud-network-setup.service; disabled; vendor preset: disabled)
      Active: active (running) since Mon 2021-05-17 21:08:14 CEST; 43min ago
    Main PID: 328542 (cloud-network-s)
