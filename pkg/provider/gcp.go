@@ -5,6 +5,7 @@ package provider
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"path"
@@ -133,6 +134,26 @@ func (g *GCP) FetchCloudMetadata() error {
 
 	json.Unmarshal(resp.Body(), &g.meta)
 	return nil
+}
+
+func (g *GCP) ParseIpv4GatewayFromMetadataByMac(mac string) (string, error) {
+	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+		if mac == g.meta.Instance.Networkinterfaces[i].Mac {
+			return g.meta.Instance.Networkinterfaces[i].Gateway, nil
+		}
+	}
+
+	return "", errors.New("not found")
+}
+
+func (g *GCP) ParseLinkMTUFromMetadataByMac(mac string) (int, error) {
+	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+		if mac == g.meta.Instance.Networkinterfaces[i].Mac {
+			return g.meta.Instance.Networkinterfaces[i].Mtu, nil
+		}
+	}
+
+	return 0, errors.New("not found")
 }
 
 func (g *GCP) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, error) {
