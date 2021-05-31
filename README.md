@@ -3,7 +3,7 @@
 
 ```cloud-network``` configures network in cloud environment. In cloud environment instances are set public IP and private IP. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured via DHCP. This project is adopting towards cloud network environment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign ip and routes. When `cloud-network` is installed, it automatically configures network interfaces in cloud frameworks. Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IPv4 addresses from the metadata server endpoint and configures them on the interface, if any.
 
-A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance metadata is saved in per link basis in the directory `/run/cloud-network-setup`.
+A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance metadata is saved in per link basis in the directory `/run/cloud-network`.
 
 Interface configurations is checked periodically, and in case the configuration in the cloud framework changed, the interface will be reconfigured accordingly.
 
@@ -62,8 +62,8 @@ rules for each Ip address including primary address. Defaults to unset.
 Note that when there are multiple interfaces, the secondary interface becomes unreachable. When `Supplementary=` is set, the default route and routing policy
 rules are automatically configured.
 
- ```bash
-❯ cat /etc/cloud-network-setup/cloud-network.toml
+ ```bash                                                                                                                                                                  
+> cat /etc/cloud-network/cloud-network.toml
 [System]
 RefreshTimer="300s"
 LogLevel="info"
@@ -72,6 +72,7 @@ LogFormat="text"
 [Network]
 Address="127.0.0.1"
 Port="5209"
+Supplementary="ens3"
 ```
 
 ```bash
@@ -130,7 +131,7 @@ Services Partition: aws
 #### Contributing
 ----
 
-The `cloud-network-setup` project team welcomes contributions from the community. If you wish to contribute code and you have not signed our contributor license agreement (CLA), our bot will update the issue when you open a Pull Request. For any questions about the CLA process, please refer to our [FAQ](https://cla.vmware.com/faq).
+The **Cloud Network Setup** project team welcomes contributions from the community. If you wish to contribute code and you have not signed our contributor license agreement (CLA), our bot will update the issue when you open a Pull Request. For any questions about the CLA process, please refer to our [FAQ](https://cla.vmware.com/faq).
 
 slack channel [#photon](https://code.vmware.com/web/code/join).
 
