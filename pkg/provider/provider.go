@@ -104,7 +104,7 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 
 		eq := reflect.DeepEqual(newAddresses, earlierAddresses)
 		if eq {
-			log.Debugf("Old metadata addresses='%+v' and new addresses='%+v' received from Azure IMDS endpoint are equal. Skipping ...",
+			log.Debugf("Old metadata addresses='%+v' and new addresses='%+v' received from endpoint are equal. Skipping ...",
 				existingAddresses, newAddresses)
 			return nil
 		}
@@ -129,9 +129,38 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 	for i := range newAddresses {
 		_, ok := existingAddresses[i]
 		if !ok {
+
+			if link.OperState == "down" {
+				err := network.SetLinkOperStateUp(link.Ifindex)
+				if err != nil {
+					log.Errorf("Failed to bring up the link='%s' ifindex='%d': %+v", link.Name, link.Ifindex, err)
+					return err
+				}
+
+				log.Debugf("Successfully brought up the link='%s' ifindex='%d'", link.Name, link.Ifindex)
+			}
+
+			var mtu int
+			switch m.Kind {
+			case cloud.GCP:
+				mtu, err = m.gcp.ParseLinkMTUFromMetadataByMac(link.Mac)
+				if err != nil || mtu == 0 {
+					log.Warningf("Failed to parse MTU link='%s' ifindex='%d': %+v", err)
+				}
+			}
+
+			if mtu != 0 && link.MTU != mtu {
+				err = network.SetLinkMtu(link.Ifindex, mtu)
+				if err != nil {
+					log.Warningf("Failed to set MTU link='%s' ifindex='%d': %+v", err)
+				} else {
+					log.Infof("Successfully MTU set to '%d' link='%s' ifindex='%d'", mtu, link.Name, link.Ifindex)
+				}
+			}
+
 			err = network.SetAddress(link.Name, i)
 			if err != nil {
-				log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': +v", i, link.Name, link.Ifindex, err)
+				log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': %+v", i, link.Name, link.Ifindex, err)
 				continue
 			}
 
@@ -165,6 +194,7 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 			if err := m.configureRoutingPolicyRule(link, i); err != nil {
 				continue
 			}
+
 		}
 	}
 	delete(m.addressesByMAC, link.Mac)
@@ -179,15 +209,24 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 }
 
 func (m *Environment) configureRoute(link *network.Link) error {
-	gw, err := network.GetIpv4Gateway(link.Ifindex)
-	if err != nil {
-		log.Infof("Failed to find gateway for the link='%s' ifindex='%d: '%+v'", link.Name, link.Ifindex, err)
-		return err
+	var gw string
+	var err error
+
+	if m.Kind == "gcp" {
+		gw, _ = m.gcp.ParseIpv4GatewayFromMetadataByMac(link.Mac)
+	}
+
+	if len(gw) <= 0 {
+		gw, err = network.GetIpv4Gateway(link.Ifindex)
+		if err != nil {
+			log.Infof("Failed to find gateway for the link='%s' ifindex='%d: %+v", link.Name, link.Ifindex, err)
+			return err
+		}
 	}
 
 	err = network.AddRoute(link.Ifindex, m.routeTable+link.Ifindex, gw)
 	if err != nil {
-		log.Errorf("Failed to add default gateway='%+v' for link='%+v' ifindex='%+v': '%+v' table='%d': %+v", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex, err)
+		log.Errorf("Failed to add default gateway='%s' for link='%+d' ifindex='%d' table='%d': %+v", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex, err)
 		return err
 	} else {
 		log.Debugf("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex)
