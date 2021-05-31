@@ -44,8 +44,6 @@ func SetAddress(name string, address string) error {
 }
 
 func GetIPv4Addresses(ifName string) (map[string]bool, error) {
-	m := make(map[string]bool)
-
 	link, err := netlink.LinkByName(ifName)
 	if err != nil {
 		return nil, err
@@ -54,11 +52,13 @@ func GetIPv4Addresses(ifName string) (map[string]bool, error) {
 	addresses, err := netlink.AddrList(link, netlink.FAMILY_V4)
 	if err != nil {
 		return nil, err
-	} else {
-		for _, addr := range addresses {
-			m[addr.IPNet.String()] = true
-		}
 	}
+
+	m := make(map[string]bool)
+	for _, addr := range addresses {
+		m[addr.IPNet.String()] = true
+	}
+
 	return m, nil
 }
 

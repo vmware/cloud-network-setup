@@ -113,15 +113,13 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 		for _, i := range earlierAddresses {
 			_, ok := newAddresses[i]
 			if !ok {
-				err = network.RemoveIPAddress(link.Name, i)
-				if err != nil {
+				if err := network.RemoveIPAddress(link.Name, i); err != nil {
 					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, link.Name, link.Ifindex, err)
-					continue
 				} else {
 					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, link.Name, link.Ifindex)
-
-					m.removeRoutingPolicyRule(i, link)
 				}
+
+				m.removeRoutingPolicyRule(i, link)
 			}
 		}
 	}
@@ -131,8 +129,7 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 		if !ok {
 
 			if link.OperState == "down" {
-				err := network.SetLinkOperStateUp(link.Ifindex)
-				if err != nil {
+				if err := network.SetLinkOperStateUp(link.Ifindex); err != nil {
 					log.Errorf("Failed to bring up the link='%s' ifindex='%d': %+v", link.Name, link.Ifindex, err)
 					return err
 				}
@@ -150,16 +147,14 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 			}
 
 			if mtu != 0 && link.MTU != mtu {
-				err = network.SetLinkMtu(link.Ifindex, mtu)
-				if err != nil {
+				if err := network.SetLinkMtu(link.Ifindex, mtu); err != nil {
 					log.Warningf("Failed to set MTU link='%s' ifindex='%d': %+v", err)
 				} else {
 					log.Infof("Successfully MTU set to '%d' link='%s' ifindex='%d'", mtu, link.Name, link.Ifindex)
 				}
 			}
 
-			err = network.SetAddress(link.Name, i)
-			if err != nil {
+			if err := network.SetAddress(link.Name, i); err != nil {
 				log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': %+v", i, link.Name, link.Ifindex, err)
 				continue
 			}
@@ -224,13 +219,12 @@ func (m *Environment) configureRoute(link *network.Link) error {
 		}
 	}
 
-	err = network.AddRoute(link.Ifindex, m.routeTable+link.Ifindex, gw)
-	if err != nil {
+	if err := network.AddRoute(link.Ifindex, m.routeTable+link.Ifindex, gw); err != nil {
 		log.Errorf("Failed to add default gateway='%s' for link='%+d' ifindex='%d' table='%d': %+v", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex, err)
 		return err
-	} else {
-		log.Debugf("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex)
 	}
+
+	log.Debugf("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex)
 
 	return nil
 }

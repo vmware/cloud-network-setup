@@ -199,8 +199,7 @@ func (g *GCP) ConfigureNetworkFromCloudMeta(m *Environment) error {
 }
 
 func (g *GCP) SaveCloudMetadata() error {
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", g.meta)
-	if err != nil {
+	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", g.meta); err != nil {
 		log.Errorf("Failed to write to system file: %+v", err)
 		return err
 	}
@@ -233,7 +232,6 @@ func (g *GCP) LinkSaveCloudMetadata() error {
 
 func (e *Environment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
 	utils.JSONResponse(e.gcp.meta, rw)
-
 }
 
 func RegisterRouterGCP(r *mux.Router, e *Environment) {

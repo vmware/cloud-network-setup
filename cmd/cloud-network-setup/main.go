@@ -26,13 +26,11 @@ import (
 )
 
 func createStateDirsAndFiles(provider string) error {
-	err := os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm)
-	if err != nil {
+	if err := os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm); err != nil {
 		return err
 	}
 
-	err = utils.CreateStatefile("/run/cloud-network-setup/system")
-	if err != nil {
+	if err := utils.CreateStatefile("/run/cloud-network-setup/system"); err != nil {
 		return err
 	}
 
@@ -73,34 +71,30 @@ func configureSupplementaryLinks(s string) error {
 			continue
 		}
 
-		err = network.ConfigureByIndex(link.Index)
-		if err != nil {
+		if err = network.ConfigureByIndex(link.Index); err != nil {
 			log.Errorf("Failed to configure network for link='%s' ifindex='%d': %+v", link.Name, link.Index, err)
 			return err
-		} else {
-			log.Debugf("Successfully configured network for link='%s' ifindex='%d'", link.Name, link.Index)
 		}
+
+		log.Debugf("Successfully configured network for link='%s' ifindex='%d'", link.Name, link.Index)
 	}
 
 	return nil
 }
 
 func retriveMetaDataAndConfigure(m *provider.Environment) error {
-	err := provider.AcquireCloudMetadata(m)
-	if err != nil {
-		log.Errorf("Failed to fetch cloud metadata from endpoint")
+	if err := provider.AcquireCloudMetadata(m); err != nil {
+		log.Errorf("Failed to fetch cloud metadata from endpoint: %+v", err)
 		return err
 	}
 
-	provider.SaveMetaData(m)
-	if err != nil {
-		log.Errorf("Failed to save cloud metadata: %s", err)
+	if err := provider.SaveMetaData(m); err != nil {
+		log.Errorf("Failed to save cloud metadata: %+v", err)
 		return err
 	}
 
-	err = provider.ConfigureNetworkMetadata(m)
-	if err != nil {
-		log.Errorf("Failed to configure cloud metadata link address: %s", err)
+	if err := provider.ConfigureNetworkMetadata(m); err != nil {
+		log.Errorf("Failed to configure cloud metadata link address: %+v", err)
 		return err
 	}
 
@@ -124,19 +118,17 @@ func main() {
 	}
 
 	m := provider.New(cloud)
-	if err != nil {
-		log.Errorf("Failed initialize cloud provider: '%+v'", err)
+	if m == nil {
+		log.Errorf("Failed initialize cloud provider. Aborting ...")
 		os.Exit(1)
 	}
 
-	err = createStateDirsAndFiles(cloud)
-	if err != nil {
-		log.Warningf("Failed to create run directories or state files")
+	if err := createStateDirsAndFiles(cloud); err != nil {
+		log.Warningf("Failed to create run directories or state files: %+v", err)
 	}
 
-	err = retriveMetaDataAndConfigure(m)
-	if err != nil {
-		log.Errorf("Failed to fetch instance metadata and apply to links: %+v ", err)
+	if err := retriveMetaDataAndConfigure(m); err != nil {
+		log.Errorf("Failed to fetch instance metadata and apply to links: %+v", err)
 	}
 
 	configureSupplementaryLinks(c.Network.Supplementary)
@@ -148,7 +140,7 @@ func main() {
 			<-tick
 			err = retriveMetaDataAndConfigure(m)
 			if err != nil {
-				log.Errorf("Failed to refresh instance metadata from endpoint '%v': %+v ", m.Kind, err)
+				log.Errorf("Failed to refresh instance metadata from endpoint '%v': %+v", m.Kind, err)
 			}
 		}
 	}()

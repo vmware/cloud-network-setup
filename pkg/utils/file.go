@@ -11,8 +11,7 @@ import (
 )
 
 func PathExists(path string) bool {
-	_, r := os.Stat(path)
-	if os.IsNotExist(r) {
+	if err, r := os.Stat(path); err != nil && os.IsNotExist(r) {
 		return false
 	}
 
@@ -20,8 +19,7 @@ func PathExists(path string) bool {
 }
 
 func CreateRunDir(path string) error {
-	err := os.MkdirAll(path, os.ModePerm)
-	if err != nil {
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
 

@@ -24,13 +24,12 @@ type Link struct {
 
 // AcquireLinks Fetches link information
 func AcquireLinks() (Links, error) {
-	links := make(map[string]Link)
-
 	linkList, err := netlink.LinkList()
 	if err != nil {
 		return Links{}, err
 	}
 
+	links := make(map[string]Link)
 	for _, link := range linkList {
 		if link.Attrs().Name == "lo" {
 			continue
@@ -55,12 +54,12 @@ func AcquireLinks() (Links, error) {
 }
 
 func SetLinkOperStateUp(ifIndex int) error {
-	linkList, err := netlink.LinkList()
+	links, err := netlink.LinkList()
 	if err != nil {
 		return err
 	}
 
-	for _, link := range linkList {
+	for _, link := range links {
 		if link.Attrs().Index == ifIndex {
 			err := netlink.LinkSetUp(link)
 			if err != nil {
@@ -73,12 +72,12 @@ func SetLinkOperStateUp(ifIndex int) error {
 }
 
 func SetLinkMtu(ifIndex int, mtu int) error {
-	linkList, err := netlink.LinkList()
+	links, err := netlink.LinkList()
 	if err != nil {
 		return err
 	}
 
-	for _, link := range linkList {
+	for _, link := range links {
 		if link.Attrs().Index == ifIndex {
 			err := netlink.LinkSetMTU(link, mtu)
 			if err != nil {

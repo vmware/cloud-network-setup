@@ -462,7 +462,6 @@ func fetchDynamicInstanceIdentityFromCloudMetadata(s string) {
 
 	switch cloud.DetectCloud() {
 	case cloud.AWS:
-
 		switch s {
 		case "document":
 			var c provider.EC2Document
@@ -605,8 +604,7 @@ func main() {
 	sort.Sort(cli.FlagsByName(app.Flags))
 	sort.Sort(cli.CommandsByName(app.Commands))
 
-	err := app.Run(os.Args)
-	if err != nil {
-		fmt.Printf("Failed to run cli: '%v'", err)
+	if err := app.Run(os.Args); err != nil {
+		fmt.Printf("Failed to run cli: '%+v'", err)
 	}
 }

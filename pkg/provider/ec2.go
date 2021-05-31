@@ -352,7 +352,7 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Environment) error {
 			continue
 		}
 
-		// EC2's primary interface looses connectivity if the second interface gets configured
+		// EC2's primary interface looses connectivity if the second interface gets configured.
 		// Hence add a default route for the primary interface too and rules for each address
 		err = network.ConfigureByIndex(2)
 		if err != nil {
@@ -364,8 +364,7 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Environment) error {
 }
 
 func (ec2 *EC2) SaveCloudMetadata() error {
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", ec2.system)
-	if err != nil {
+	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", ec2.system); err != nil {
 		log.Errorf("Failed to write system file: %+v", err)
 		return err
 	}
@@ -374,31 +373,27 @@ func (ec2 *EC2) SaveCloudMetadata() error {
 }
 
 func (ec2 *EC2) SaveCloudMetadataIdentityCredentials() error {
-	err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/credentials", ec2.credentials)
-	if err != nil {
+	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/credentials", ec2.credentials); err != nil {
 		log.Errorf("Failed to save instance credentials metadata 'credentials': %+v", err)
+		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/document", ec2.document)
-	if err != nil {
+	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/document", ec2.document); err != nil {
 		log.Errorf("Failed to save instance identity metadata 'document': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/pkcs7", ec2.pkcs7)
-	if err != nil {
+	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/pkcs7", ec2.pkcs7); err != nil {
 		log.Errorf("Failed to save instance identity metadata 'pkcs7': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/signature", ec2.signature)
-	if err != nil {
+	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/signature", ec2.signature); err != nil {
 		log.Errorf("Failed to save instance identity metadata 'signature': %+v", err)
 		return err
 	}
 
-	err = utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/rsa2048", ec2.rsa2048)
-	if err != nil {
+	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/rsa2048", ec2.rsa2048); err != nil {
 		log.Errorf("Failed to save instance identity metadata 'rsa2048': %+v", err)
 		return err
 	}
