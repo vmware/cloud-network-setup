@@ -14,8 +14,11 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
-	"github.com/cloud-network-setup/pkg/utils"
+	"github.com/cloud-network-setup/pkg/parser"
+	"github.com/cloud-network-setup/pkg/system"
+	"github.com/cloud-network-setup/pkg/web"
 )
 
 const (
@@ -160,7 +163,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 	a := make(map[string]bool)
 
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
-		if strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress)) != mac {
+		if strings.ToLower(parser.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress)) != mac {
 			continue
 		}
 
@@ -183,7 +186,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 
 func (az *Azure) ConfigureNetworkFromCloudMeta(m *Environment) error {
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
-		mac := strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
+		mac := strings.ToLower(parser.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
 
 		l, ok := m.links.LinksByMAC[mac]
 		if !ok {
@@ -204,7 +207,7 @@ func (az *Azure) ConfigureNetworkFromCloudMeta(m *Environment) error {
 }
 
 func (az *Azure) SaveCloudMetadata() error {
-	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", az.meta); err != nil {
+	if err := system.CreateAndSaveJSON(conf.SystemState, az.meta); err != nil {
 		log.Errorf("Failed to write to system file: %+v", err)
 		return err
 	}
@@ -219,14 +222,14 @@ func (az *Azure) LinkSaveCloudMetadata() error {
 	}
 
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
-		mac := strings.ToLower(utils.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
+		mac := strings.ToLower(parser.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
 		l, b := links.LinksByMAC[mac]
 		if !b {
 			continue
 		}
 
 		link := az.meta.Network.Interface[i]
-		err = utils.CreateAndSaveJSON(path.Join("/run/cloud-network-setup/links", strconv.Itoa(l.Ifindex)), link)
+		err = system.CreateAndSaveJSON(path.Join(conf.LinkStateDir, strconv.Itoa(l.Ifindex)), link)
 		if err != nil {
 			log.Errorf("Failed to write link state file link='%+v': %+v", l.Name, err)
 			return err
@@ -237,7 +240,7 @@ func (az *Azure) LinkSaveCloudMetadata() error {
 }
 
 func (e *Environment) routerGetCompute(rw http.ResponseWriter, r *http.Request) {
-	utils.JSONResponse(e.az.meta, rw)
+	web.JSONResponse(e.az.meta, rw)
 }
 
 func RegisterRouterAzure(r *mux.Router, e *Environment) {

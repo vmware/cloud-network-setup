@@ -1,18 +1,19 @@
-#### cloud-network-setup
+#### cloud-network
 ----
 
-```cloud-network-setup``` configures network in cloud environment. In cloud environment instances are set public IP and private IP. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured via DHCP. This project is adopting towards cloud network environment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign ip and routes. When `cloud-network-setup` is installed, it automatically configures network interfaces in cloud frameworks.  Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IPv4 addresses from the metadata server endpoint and configures them on the interface, if any.
+```cloud-network``` configures network in cloud environment. In cloud environment instances are set public IP and private IP. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured via DHCP. This project is adopting towards cloud network environment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign ip and routes. When `cloud-network` is installed, it automatically configures network interfaces in cloud frameworks. Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IPv4 addresses from the metadata server endpoint and configures them on the interface, if any.
 
 A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance metadata is saved in per link basis in the directory `/run/cloud-network-setup`.
 
 Interface configurations is checked periodically, and in case the configuration in the cloud framework changed, the interface will be reconfigured accordingly.
 
-#### Use case
+
+ #### Use cases
 ----
 
-- How can I make my secondary network interface work in cloud instance ?
-
-This functionality is scattered across different scripts/tools that are cloud provider dependent. It providvides a cloud agnostic mechanism to retrieve metadata like network parameters and configure the interfaces. That means no more manual editing the configuration and change it if configuration changes. `cloud-network-setup` automatically configures the interfaces since it has the metadata information. 
+ * How can I make my secondary network interface work in cloud instance ?
+ 
+    This functionality is scattered across different scripts/tools that are cloud provider dependent. `cloud-network` provides a cloud agnostic mechanism to retrieve metadata like network parameters and configure the interfaces. That means no more manual editing the configuration and change it if configuration changes. `cloud-network` automatically configures the interfaces since it has the metadata information.
 
 #### Building from source
 ----
@@ -27,7 +28,7 @@ By simply doing
 #### Configuration
 ----
 
-Configuration file `cloud-network.toml` located in `/etc/cloud-network-setup/` directory to manage the configuration.
+Configuration file `cloud-network.toml` located in `/etc/cloud-network/` directory to manage the configuration.
 
 The `[System]` section takes following Keys:
 
@@ -74,21 +75,18 @@ Port="5209"
 ```
 
 ```bash
-❯ sudo systemctl status cloud-network-setup.service
-● cloud-network-setup.service - Configures network in cloud environment
-     Loaded: loaded (/usr/lib/systemd/system/cloud-network-setup.service; disabled; vendor preset: disabled)
-     Active: active (running) since Mon 2021-05-17 21:08:14 CEST; 43min ago
-   Main PID: 328542 (cloud-network-s)
-      Tasks: 9 (limit: 9287)
-     Memory: 2.8M
-        CPU: 54ms
-     CGroup: /system.slice/cloud-network-setup.service
-             └─328542 /usr/bin/cloud-network-setup
+❯ > sudo systemctl status cloud-network
+● cloud-network.service - Configures network in cloud enviroment
+     Loaded: loaded (/usr/lib/systemd/system/cloud-network.service; disabled; vendor preset: enabled)
+     Active: active (running) since Mon 2021-05-31 22:54:50 UTC; 3min 31s ago
+   Main PID: 19754 (cloud-network)
+      Tasks: 5 (limit: 4400)
+     Memory: 8.7M
+     CGroup: /system.slice/cloud-network.service
+             └─19754 /usr/bin/cloud-network
 
-May 17 21:49:29 Zeus cloud-network-setup[328542]: level=debug msg="Notify service manager watchdog"
-May 17 21:49:29 Zeus systemd[1]: cloud-network-setup.service: Got notification message from PID 328542 (WATCHDOG=1)
-May 17 21:49:59 Zeus cloud-network-setup[328542]: level=debug msg="Notify service manager watchdog"
-May 17 21:49:59 Zeus systemd[1]: cloud-network-setup.service: Got notification message from PID 328542 (WATCHDOG=1)
+May 31 22:54:50 zeus-final-2 systemd[1]: Started Configures network in cloud enviroment.
+
 
 ```
 

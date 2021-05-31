@@ -22,7 +22,8 @@ import (
 
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
-	"github.com/cloud-network-setup/pkg/utils"
+	"github.com/cloud-network-setup/pkg/system"
+	"github.com/cloud-network-setup/pkg/web"
 )
 
 const (
@@ -364,7 +365,7 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Environment) error {
 }
 
 func (ec2 *EC2) SaveCloudMetadata() error {
-	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", ec2.system); err != nil {
+	if err := system.CreateAndSaveJSON(conf.SystemState, ec2.system); err != nil {
 		log.Errorf("Failed to write system file: %+v", err)
 		return err
 	}
@@ -373,27 +374,27 @@ func (ec2 *EC2) SaveCloudMetadata() error {
 }
 
 func (ec2 *EC2) SaveCloudMetadataIdentityCredentials() error {
-	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/credentials", ec2.credentials); err != nil {
+	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/credentials", ec2.credentials); err != nil {
 		log.Errorf("Failed to save instance credentials metadata 'credentials': %+v", err)
 		return err
 	}
 
-	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/document", ec2.document); err != nil {
+	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/document", ec2.document); err != nil {
 		log.Errorf("Failed to save instance identity metadata 'document': %+v", err)
 		return err
 	}
 
-	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/pkcs7", ec2.pkcs7); err != nil {
+	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/pkcs7", ec2.pkcs7); err != nil {
 		log.Errorf("Failed to save instance identity metadata 'pkcs7': %+v", err)
 		return err
 	}
 
-	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/signature", ec2.signature); err != nil {
+	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/signature", ec2.signature); err != nil {
 		log.Errorf("Failed to save instance identity metadata 'signature': %+v", err)
 		return err
 	}
 
-	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/provider/ec2/rsa2048", ec2.rsa2048); err != nil {
+	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/rsa2048", ec2.rsa2048); err != nil {
 		log.Errorf("Failed to save instance identity metadata 'rsa2048': %+v", err)
 		return err
 	}
@@ -419,10 +420,10 @@ func (ec2 *EC2) LinkSaveCloudMetadata() error {
 		n := EC2MAC{}
 		json.Unmarshal([]byte(j), &n)
 
-		file := path.Join("/run/cloud-network-setup/links", strconv.Itoa(l.Ifindex))
-		err = utils.CreateAndSaveJSON(file, n)
+		f := path.Join(conf.LinkStateDir, strconv.Itoa(l.Ifindex))
+		err = system.CreateAndSaveJSON(f, n)
 		if err != nil {
-			log.Errorf("Failed to write state file '%+v' for link='%+v'': %+v", file, l.Name, err)
+			log.Errorf("Failed to write state file '%+v' for link='%+v'': %+v", f, l.Name, err)
 			return err
 		}
 	}
@@ -431,26 +432,26 @@ func (ec2 *EC2) LinkSaveCloudMetadata() error {
 }
 
 func (e *Environment) routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
-	utils.JSONResponse(e.ec2.system, rw)
+	web.JSONResponse(e.ec2.system, rw)
 }
 
 func (e *Environment) routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
-	utils.JSONResponse(e.ec2.network, rw)
+	web.JSONResponse(e.ec2.network, rw)
 }
 
 func (e *Environment) routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
-	utils.JSONResponse(e.ec2.credentials, rw)
+	web.JSONResponse(e.ec2.credentials, rw)
 }
 
 func (e *Environment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
 	if strings.HasSuffix(r.URL.Path, "document") {
-		utils.JSONResponse(e.ec2.document, rw)
+		web.JSONResponse(e.ec2.document, rw)
 	} else if strings.HasSuffix(r.URL.Path, "pkcs7") {
-		utils.JSONResponse(e.ec2.pkcs7, rw)
+		web.JSONResponse(e.ec2.pkcs7, rw)
 	} else if strings.HasSuffix(r.URL.Path, "signature") {
-		utils.JSONResponse(e.ec2.signature, rw)
+		web.JSONResponse(e.ec2.signature, rw)
 	} else if strings.HasSuffix(r.URL.Path, "rsa2048") {
-		utils.JSONResponse(e.ec2.rsa2048, rw)
+		web.JSONResponse(e.ec2.rsa2048, rw)
 	}
 }
 

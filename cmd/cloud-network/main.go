@@ -22,41 +22,8 @@ import (
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/provider"
-	"github.com/cloud-network-setup/pkg/utils"
+	"github.com/cloud-network-setup/pkg/system"
 )
-
-func createStateDirsAndFiles(provider string) error {
-	if err := os.MkdirAll("/run/cloud-network-setup/links", os.ModePerm); err != nil {
-		return err
-	}
-
-	if err := utils.CreateStatefile("/run/cloud-network-setup/system"); err != nil {
-		return err
-	}
-
-	links, err := network.AcquireLinks()
-	if err != nil {
-		return err
-	}
-
-	for _, l := range links.LinksByMAC {
-		err = utils.CreateLinkStatefile("/run/cloud-network-setup/links", l.Ifindex)
-		if err != nil {
-			return err
-		}
-	}
-
-	switch provider {
-	case cloud.AWS:
-		err := os.MkdirAll("/run/cloud-network-setup/provider/ec2", os.ModePerm)
-		if err != nil {
-			return err
-		}
-	default:
-	}
-
-	return nil
-}
 
 func configureSupplementaryLinks(s string) error {
 	words := strings.Fields(s)
@@ -104,31 +71,31 @@ func retriveMetaDataAndConfigure(m *provider.Environment) error {
 func main() {
 	log.Infof("cloud-network-setup: v%+v (built '%+v')", conf.Version, runtime.Version())
 
-	cloud := cloud.DetectCloud()
-	if len(cloud) <= 0 {
+	kind := cloud.DetectCloud()
+	if len(kind) <= 0 {
 		log.Fatal("Failed to detect cloud environment, Aborting ...")
 		os.Exit(1)
 	}
 
-	log.Infof("Detected cloud environment: '%+v'", cloud)
+	log.Infof("Detected cloud environment: '%s'", kind)
 
 	c, err := conf.Parse()
 	if err != nil {
-		log.Errorf("Failed to parse conf file '%+v': %+v", conf.ConfFile, err)
+		log.Errorf("Failed to parse conf file '%s': %+v", conf.ConfFile, err)
 	}
 
-	m := provider.New(cloud)
+	m := provider.New(kind)
 	if m == nil {
 		log.Errorf("Failed initialize cloud provider. Aborting ...")
 		os.Exit(1)
 	}
 
-	if err := createStateDirsAndFiles(cloud); err != nil {
-		log.Warningf("Failed to create run directories or state files: %+v", err)
+	if err := system.CreateStateDirs(kind); err != nil {
+		log.Warningf("Failed to create /run directories: %+v", err)
 	}
 
 	if err := retriveMetaDataAndConfigure(m); err != nil {
-		log.Errorf("Failed to fetch instance metadata and apply to links: %+v", err)
+		log.Errorf("Failed to fetch instance metadata and configure: %+v", err)
 	}
 
 	configureSupplementaryLinks(c.Network.Supplementary)
@@ -140,7 +107,7 @@ func main() {
 			<-tick
 			err = retriveMetaDataAndConfigure(m)
 			if err != nil {
-				log.Errorf("Failed to refresh instance metadata from endpoint '%v': %+v", m.Kind, err)
+				log.Errorf("Failed to refresh instance metadata from endpoint '%s': %+v", m.Kind, err)
 			}
 		}
 	}()

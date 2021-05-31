@@ -11,14 +11,19 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/cloud-network-setup/pkg/utils"
+	"github.com/cloud-network-setup/pkg/parser"
 )
 
-// App Version
 const (
-	Version                   = "0.1"
-	ConfPath                  = "/etc/cloud-network-setup"
-	ConfFile                  = "cloud-network"
+	Version  = "0.1"
+	ConfPath = "/etc/cloud-network"
+
+	SystemStateDir   = "/run/cloud-network"
+	ProviderStateDir = SystemStateDir + "/provider"
+	LinkStateDir     = SystemStateDir + "/links"
+	SystemState      = SystemStateDir + "/system"
+	ConfFile         = "cloud-network"
+
 	DefaultHttpRequestTimeout = 10000
 )
 
@@ -69,7 +74,7 @@ func init() {
 }
 
 func SetLogLevel(level string) error {
-	if len(level) <= 0 {
+	if level == "" {
 		return errors.New("failed to parse log level")
 	}
 
@@ -127,13 +132,13 @@ func Parse() (*Config, error) {
 		return nil, err
 	}
 
-	_, err = utils.ParseIP(conf.Network.Address)
+	_, err = parser.ParseIP(conf.Network.Address)
 	if err != nil {
 		logrus.Warningf("Failed to parse Address='%+v' port='%+v': %+v", conf.Network.Address, conf.Network.Port, err)
 		IPFlag = conf.Network.Address
 	}
 
-	_, err = utils.ParsePort(conf.Network.Port)
+	_, err = parser.ParsePort(conf.Network.Port)
 	if err != nil {
 		logrus.Warningf("Failed to parse Port='%+v': %+v", conf.Network.Port, err)
 		PortFlag = conf.Network.Port

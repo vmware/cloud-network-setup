@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[Unit]
+Description=Configures network in cloud environment
+After=network-online.target
+
+[Service]
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+ExecStart=!!/usr/bin/cloud-network
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+NoNewPrivileges=yes
+ProtectProc=invisible
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectSystem=strict
+RuntimeDirectory=cloud-network
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+Restart=always
+RestartSec=0
+
+[Install]
+WantedBy=multi-user.target

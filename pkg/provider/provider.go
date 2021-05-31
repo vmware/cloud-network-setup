@@ -224,7 +224,9 @@ func (m *Environment) configureRoute(link *network.Link) error {
 		return err
 	}
 
-	log.Debugf("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex)
+	log.Infof("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex)
+
+	log.Infof("Link='%s' ifindex='%d' is now configured", link.Name, link.Ifindex)
 
 	return nil
 }
@@ -243,7 +245,7 @@ func (m *Environment) configureRoutingPolicyRule(link *network.Link, address str
 		log.Errorf("Failed to add routing policy rule 'from' for link='%+v' ifindex='%+v' table='%d': %+v", link.Name, link.Ifindex, from.Table, err)
 		return err
 	} else {
-		log.Debugf("Successfully added routing policy rule 'from' in route table='%d' for link='%+v' ifindex='%+v'", from.Table, link.Name, link.Ifindex)
+		log.Infof("Successfully added routing policy rule 'from' in route table='%d' for link='%+v' ifindex='%+v'", from.Table, link.Name, link.Ifindex)
 	}
 	m.routingRulesByAddressFrom[address] = from
 
@@ -257,7 +259,7 @@ func (m *Environment) configureRoutingPolicyRule(link *network.Link, address str
 		log.Errorf("Failed to add routing policy rule 'to' for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, to.Table, err)
 		return err
 	} else {
-		log.Debugf("Successfully added routing policy rule 'to' in route table='%d' for link='%+v' ifindex='%+v'", to.Table, link.Name, link.Ifindex)
+		log.Infof("Successfully added routing policy rule 'to' in route table='%d' for link='%+v' ifindex='%+v'", to.Table, link.Name, link.Ifindex)
 	}
 	m.routingRulesByAddressFrom[address] = from
 

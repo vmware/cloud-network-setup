@@ -18,7 +18,8 @@ import (
 
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
-	"github.com/cloud-network-setup/pkg/utils"
+	"github.com/cloud-network-setup/pkg/system"
+	"github.com/cloud-network-setup/pkg/web"
 )
 
 const (
@@ -199,8 +200,8 @@ func (g *GCP) ConfigureNetworkFromCloudMeta(m *Environment) error {
 }
 
 func (g *GCP) SaveCloudMetadata() error {
-	if err := utils.CreateAndSaveJSON("/run/cloud-network-setup/system", g.meta); err != nil {
-		log.Errorf("Failed to write to system file: %+v", err)
+	if err := system.CreateAndSaveJSON(conf.SystemState, g.meta); err != nil {
+		log.Errorf("Failed to write to '%s': %+v", conf.SystemState, err)
 		return err
 	}
 
@@ -220,9 +221,9 @@ func (g *GCP) LinkSaveCloudMetadata() error {
 		}
 
 		link := g.meta.Instance.Networkinterfaces[i]
-		err = utils.CreateAndSaveJSON(path.Join("/run/cloud-network-setup/links", strconv.Itoa(l.Ifindex)), link)
+		err = system.CreateAndSaveJSON(path.Join(conf.LinkStateDir, strconv.Itoa(l.Ifindex)), link)
 		if err != nil {
-			log.Errorf("Failed to write link state file link='%+v': %+v", l.Name, err)
+			log.Errorf("Failed write to link='%s' state: %+v", l.Name, err)
 			return err
 		}
 	}
@@ -231,7 +232,7 @@ func (g *GCP) LinkSaveCloudMetadata() error {
 }
 
 func (e *Environment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
-	utils.JSONResponse(e.gcp.meta, rw)
+	web.JSONResponse(e.gcp.meta, rw)
 }
 
 func RegisterRouterGCP(r *mux.Router, e *Environment) {
