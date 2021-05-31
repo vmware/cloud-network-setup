@@ -16,7 +16,9 @@ type Links struct {
 type Link struct {
 	Name      string
 	Ifindex   int
+	OperState string
 	Mac       string
+	MTU       int
 	Addresses *map[string]bool
 }
 
@@ -35,9 +37,11 @@ func AcquireLinks() (Links, error) {
 		}
 
 		l := Link{
-			Name:    link.Attrs().Name,
-			Ifindex: link.Attrs().Index,
-			Mac:     link.Attrs().HardwareAddr.String(),
+			Name:      link.Attrs().Name,
+			Ifindex:   link.Attrs().Index,
+			Mac:       link.Attrs().HardwareAddr.String(),
+			OperState: link.Attrs().OperState.String(),
+			MTU:       link.Attrs().MTU,
 		}
 
 		links[link.Attrs().HardwareAddr.String()] = l
@@ -48,4 +52,40 @@ func AcquireLinks() (Links, error) {
 	return Links{
 		LinksByMAC: links,
 	}, nil
+}
+
+func SetLinkOperStateUp(ifIndex int) error {
+	linkList, err := netlink.LinkList()
+	if err != nil {
+		return err
+	}
+
+	for _, link := range linkList {
+		if link.Attrs().Index == ifIndex {
+			err := netlink.LinkSetUp(link)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func SetLinkMtu(ifIndex int, mtu int) error {
+	linkList, err := netlink.LinkList()
+	if err != nil {
+		return err
+	}
+
+	for _, link := range linkList {
+		if link.Attrs().Index == ifIndex {
+			err := netlink.LinkSetMTU(link, mtu)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
