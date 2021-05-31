@@ -7,6 +7,13 @@ A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance me
 
 Interface configurations is checked periodically, and in case the configuration in the cloud framework changed, the interface will be reconfigured accordingly.
 
+#### Use case
+----
+
+- How can I make my secondary network interface work in cloud instance ?
+
+This functionality is scattered across different scripts/tools that are cloud provider dependent. It providvides a cloud agnostic mechanism to retrieve metadata like network parameters and configure the interfaces. That means no more manual editing the configuration and change it if configuration changes. `cloud-network-setup` automatically configures the interfaces since it has the metadata information. 
+
 #### Building from source
 ----
 
