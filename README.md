@@ -18,11 +18,18 @@ Interface configurations is checked periodically, and in case the configuration 
 #### Building from source
 ----
 
-By simply doing
+By doing
 ```bash
 
 ❯ make build
 ❯ sudo make install
+```
+
+Due to security `cloud-network` runs in non root user `cloud-network`. It drops all privileges except `CAP_NET_ADMIN`.
+
+```bash
+
+❯  useradd -M -s /usr/bin/nologin cloud-network
 ```
 
 #### Configuration
