@@ -135,8 +135,9 @@ func main() {
 	}
 
 	// Periodic timer to fetch data from endpoint
+	t, _ := time.ParseDuration(c.System.RefreshTimer)
 	go func() {
-		tick := time.Tick(time.Duration(conf.RefreshTimerFlag.Seconds()) * time.Second)
+		tick := time.Tick(t * time.Second)
 		for {
 			<-tick
 			err = cloudNetworkBegin(m)

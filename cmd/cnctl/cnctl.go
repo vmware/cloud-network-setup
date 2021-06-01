@@ -130,8 +130,8 @@ func displayGCPCloudNetworkMetadata(links *network.Links, g *provider.GCPMetaDat
 	return nil
 }
 
-func fetchCloudNetworkMetadata() error {
-	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/network")
+func fetchCloudNetworkMetadata(ip string, port string) error {
+	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/network")
 	if err != nil {
 		fmt.Printf("Failed to fetch instance metadata: '%+v'", err)
 		return err
@@ -291,8 +291,8 @@ func displayGCPCloudProjectMetadata(g *provider.GCPMetaData) {
 	fmt.Printf("         Instane Serviceaccounts Scopes: %+v \n", strings.Join(g.Instance.Serviceaccounts.Three8191186391ComputeDeveloperGserviceaccountCom.Scopes, " "))
 }
 
-func fetchCloudSystemMetadata() {
-	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/system")
+func fetchCloudSystemMetadata(ip string, port string) {
+	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/system")
 	if err != nil {
 		return
 	}
@@ -353,8 +353,8 @@ func displayGCPCloudSSHKeysFromMetadata(g *provider.GCPMetaData) {
 	}
 }
 
-func fetchSSHKeysFromCloudMetadata() {
-	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/system")
+func fetchSSHKeysFromCloudMetadata(ip string, port string) {
+	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/system")
 	if err != nil {
 		return
 	}
@@ -366,7 +366,7 @@ func fetchSSHKeysFromCloudMetadata() {
 
 		displayAzureCloudSSHKeysFromMetadata(&f)
 	case cloud.AWS:
-		c, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/credentials")
+		c, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/credentials")
 		if err != nil {
 			return
 		}
@@ -383,8 +383,8 @@ func fetchSSHKeysFromCloudMetadata() {
 	}
 }
 
-func fetchGCPCloudProjectMetadata() {
-	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/system")
+func fetchGCPCloudProjectMetadata(ip string, port string) {
+	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/system")
 	if err != nil {
 		return
 	}
@@ -410,8 +410,8 @@ func displayIdentityCredentialsFromMetadata(c *provider.EC2Credentials) {
 	fmt.Printf("          Token: %+v\n", c.Token)
 }
 
-func fetchIdentityCredentialsFromCloudMetadata() {
-	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/credentials")
+func fetchIdentityCredentialsFromCloudMetadata(ip string, port string) {
+	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/credentials")
 	if err != nil {
 		return
 	}
@@ -454,8 +454,8 @@ func displayDynamicInstanceIdentityDocument(c *provider.EC2Document) {
 	fmt.Printf("                Version: %+v\n", c.Version)
 }
 
-func fetchDynamicInstanceIdentityFromCloudMetadata(s string) {
-	resp, err := fetchCloudMetadata("http://" + conf.IPFlag + ":" + conf.PortFlag + "/api/cloud/dynamicinstanceidentity/" + s)
+func fetchDynamicInstanceIdentityFromCloudMetadata(s string, ip string, port string) {
+	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/dynamicinstanceidentity/" + s)
 	if err != nil {
 		return
 	}
@@ -492,7 +492,7 @@ func fetchDynamicInstanceIdentityFromCloudMetadata(s string) {
 }
 
 func main() {
-	conf.Parse()
+	conf, _ := conf.Parse()
 	log.SetOutput(ioutil.Discard)
 
 	cli.VersionPrinter = func(c *cli.Context) {
@@ -516,7 +516,7 @@ func main() {
 					Name:  "system",
 					Usage: "Display cloud system metadata",
 					Action: func(c *cli.Context) error {
-						fetchCloudSystemMetadata()
+						fetchCloudSystemMetadata(conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
@@ -524,7 +524,7 @@ func main() {
 					Name:  "network",
 					Usage: "Display cloud network metadata",
 					Action: func(c *cli.Context) error {
-						fetchCloudNetworkMetadata()
+						fetchCloudNetworkMetadata(conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
@@ -539,7 +539,7 @@ func main() {
 					Aliases: []string{"k"},
 					Usage:   "Display SSH key",
 					Action: func(c *cli.Context) error {
-						fetchSSHKeysFromCloudMetadata()
+						fetchSSHKeysFromCloudMetadata(conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
@@ -548,7 +548,7 @@ func main() {
 					Aliases: []string{"c"},
 					Usage:   "Display EC2 data identity credentials",
 					Action: func(c *cli.Context) error {
-						fetchIdentityCredentialsFromCloudMetadata()
+						fetchIdentityCredentialsFromCloudMetadata(conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
@@ -557,7 +557,7 @@ func main() {
 					Aliases: []string{"d"},
 					Usage:   "Display EC2 data identity credentials document",
 					Action: func(c *cli.Context) error {
-						fetchDynamicInstanceIdentityFromCloudMetadata("document")
+						fetchDynamicInstanceIdentityFromCloudMetadata("document", conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
@@ -566,7 +566,7 @@ func main() {
 					Aliases: []string{"p"},
 					Usage:   "Display EC2 data identity credentials pkcs7",
 					Action: func(c *cli.Context) error {
-						fetchDynamicInstanceIdentityFromCloudMetadata("pkcs7")
+						fetchDynamicInstanceIdentityFromCloudMetadata("pkcs7", conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
@@ -575,7 +575,7 @@ func main() {
 					Aliases: []string{"s"},
 					Usage:   "Display EC2 data identity credentials signature",
 					Action: func(c *cli.Context) error {
-						fetchDynamicInstanceIdentityFromCloudMetadata("signature")
+						fetchDynamicInstanceIdentityFromCloudMetadata("signature", conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
@@ -584,7 +584,7 @@ func main() {
 					Aliases: []string{"r"},
 					Usage:   "Display EC2 data identity credentials rsa2048",
 					Action: func(c *cli.Context) error {
-						fetchDynamicInstanceIdentityFromCloudMetadata("rsa2048")
+						fetchDynamicInstanceIdentityFromCloudMetadata("rsa2048", conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
@@ -593,7 +593,7 @@ func main() {
 					Aliases: []string{"p"},
 					Usage:   "Display GCP project metadata",
 					Action: func(c *cli.Context) error {
-						fetchGCPCloudProjectMetadata()
+						fetchGCPCloudProjectMetadata(conf.Network.Address, conf.Network.Port)
 						return nil
 					},
 				},
