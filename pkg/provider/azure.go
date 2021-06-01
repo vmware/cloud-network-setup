@@ -15,7 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloud-network-setup/pkg/conf"
-	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/parser"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
@@ -208,30 +207,22 @@ func (az *Azure) ConfigureNetworkFromCloudMeta(m *Environment) error {
 
 func (az *Azure) SaveCloudMetadata() error {
 	if err := system.CreateAndSaveJSON(conf.SystemState, az.meta); err != nil {
-		log.Errorf("Failed to write to system file: %+v", err)
 		return err
 	}
 
 	return nil
 }
 
-func (az *Azure) LinkSaveCloudMetadata() error {
-	links, err := network.AcquireLinks()
-	if err != nil {
-		return err
-	}
-
+func (az *Azure) LinkSaveCloudMetadata(m *Environment) error {
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
 		mac := strings.ToLower(parser.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
-		l, b := links.LinksByMAC[mac]
+		l, b := m.links.LinksByMAC[mac]
 		if !b {
 			continue
 		}
 
 		link := az.meta.Network.Interface[i]
-		err = system.CreateAndSaveJSON(path.Join(conf.LinkStateDir, strconv.Itoa(l.Ifindex)), link)
-		if err != nil {
-			log.Errorf("Failed to write link state file link='%+v': %+v", l.Name, err)
+		if err := system.CreateAndSaveJSON(path.Join(conf.LinkStateDir, strconv.Itoa(l.Ifindex)), link); err != nil {
 			return err
 		}
 	}

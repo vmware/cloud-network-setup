@@ -4,18 +4,38 @@
 package system
 
 import (
+	"fmt"
+	"syscall"
+
 	"github.com/syndtr/gocapability/capability"
+	"golang.org/x/sys/unix"
 )
 
-func SetCapability() error {
+func ApplyCapability(c *syscall.Credential) error {
 	caps, err := capability.NewPid2(0)
 	if err != nil {
 		return err
 	}
 
-	caps.Clear(capability.CAPS)
-	caps.Set(capability.CAPS, capability.CAP_SYS_ADMIN|capability.CAP_NET_BIND_SERVICE)
-	if err := caps.Apply(capability.CAPS); err != nil {
+	caps.Set(capability.CAPS|capability.BOUNDS|capability.AMBIENT, capability.CAP_NET_ADMIN)
+	if e := caps.Apply(capability.CAPS | capability.BOUNDS | capability.AMBIENT); e != nil {
+		err = fmt.Errorf("failed to apply capabilities: %w", e)
+		return err
+	}
+
+	return nil
+}
+
+func EnableKeepCapability() error {
+	if err := unix.Prctl(unix.PR_SET_KEEPCAPS, 1, 0, 0, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DisableKeepCapability() error {
+	if err := unix.Prctl(unix.PR_SET_KEEPCAPS, 0, 0, 0, 0); err != nil {
 		return err
 	}
 

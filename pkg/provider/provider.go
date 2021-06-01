@@ -300,7 +300,7 @@ func SaveMetaData(m *Environment) error {
 			return err
 		}
 
-		if err := m.az.LinkSaveCloudMetadata(); err != nil {
+		if err := m.az.LinkSaveCloudMetadata(m); err != nil {
 			return err
 		}
 	case cloud.AWS:
@@ -312,7 +312,7 @@ func SaveMetaData(m *Environment) error {
 			return err
 		}
 
-		if err := m.ec2.LinkSaveCloudMetadata(); err != nil {
+		if err := m.ec2.LinkSaveCloudMetadata(m); err != nil {
 			return err
 		}
 	case cloud.GCP:
@@ -320,7 +320,7 @@ func SaveMetaData(m *Environment) error {
 			return err
 		}
 
-		if err := m.gcp.LinkSaveCloudMetadata(); err != nil {
+		if err := m.gcp.LinkSaveCloudMetadata(m); err != nil {
 			return err
 		}
 	default:

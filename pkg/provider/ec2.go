@@ -366,7 +366,6 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Environment) error {
 
 func (ec2 *EC2) SaveCloudMetadata() error {
 	if err := system.CreateAndSaveJSON(conf.SystemState, ec2.system); err != nil {
-		log.Errorf("Failed to write system file: %+v", err)
 		return err
 	}
 
@@ -375,43 +374,33 @@ func (ec2 *EC2) SaveCloudMetadata() error {
 
 func (ec2 *EC2) SaveCloudMetadataIdentityCredentials() error {
 	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/credentials", ec2.credentials); err != nil {
-		log.Errorf("Failed to save instance credentials metadata 'credentials': %+v", err)
 		return err
 	}
 
 	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/document", ec2.document); err != nil {
-		log.Errorf("Failed to save instance identity metadata 'document': %+v", err)
 		return err
 	}
 
 	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/pkcs7", ec2.pkcs7); err != nil {
-		log.Errorf("Failed to save instance identity metadata 'pkcs7': %+v", err)
 		return err
 	}
 
 	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/signature", ec2.signature); err != nil {
-		log.Errorf("Failed to save instance identity metadata 'signature': %+v", err)
 		return err
 	}
 
 	if err := system.CreateAndSaveJSON(conf.ProviderStateDir+"/ec2/rsa2048", ec2.rsa2048); err != nil {
-		log.Errorf("Failed to save instance identity metadata 'rsa2048': %+v", err)
 		return err
 	}
 
 	return nil
 }
 
-func (ec2 *EC2) LinkSaveCloudMetadata() error {
-	links, err := network.AcquireLinks()
-	if err != nil {
-		return err
-	}
-
+func (ec2 *EC2) LinkSaveCloudMetadata(m *Environment) error {
 	for k, v := range ec2.macs {
-		l, ok := links.LinksByMAC[k]
+		l, ok := m.links.LinksByMAC[k]
 		if !ok {
-			log.Errorf("Failed to find link having MAC Address='%+v': %+v", k, err)
+			log.Errorf("Failed to find link having MAC Address='%s'", k)
 			continue
 		}
 
@@ -421,9 +410,8 @@ func (ec2 *EC2) LinkSaveCloudMetadata() error {
 		json.Unmarshal([]byte(j), &n)
 
 		f := path.Join(conf.LinkStateDir, strconv.Itoa(l.Ifindex))
-		err = system.CreateAndSaveJSON(f, n)
-		if err != nil {
-			log.Errorf("Failed to write state file '%+v' for link='%+v'': %+v", f, l.Name, err)
+		if err := system.CreateAndSaveJSON(f, n); err != nil {
+			log.Errorf("Failed to write link state '%s' for link='%+v'': %+v", f, l.Name, err)
 			return err
 		}
 	}

@@ -9,32 +9,43 @@ import (
 	"syscall"
 )
 
-func GetUserCredentials(u string) (int, int, *user.User, error) {
-	user, err := user.Lookup(u)
-	if err != nil {
-		return -1, -1, nil, err
+func GetUserCredentials(usr string) (*syscall.Credential, error) {
+	var u *user.User
+	var err error
+
+	if usr != "" {
+		u, err = user.Lookup(usr)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		u, err = user.Current()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	uid, _ := strconv.Atoi(user.Uid)
-	gid, _ := strconv.Atoi(user.Gid)
+	i, err := strconv.ParseUint(u.Uid, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	uid := uint32(i)
 
-	return uid, gid, user, nil
+	i, err = strconv.ParseUint(u.Gid, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	gid := uint32(i)
+
+	return &syscall.Credential{Uid: uid, Gid: gid}, nil
 }
 
-func SwitchUser(u *user.User) (err error) {
-	var uid, gid int
-
-	if gid, err = strconv.Atoi(u.Gid); err != nil {
-		return
-	}
-	if uid, err = strconv.Atoi(u.Uid); err != nil {
-		return
-	}
-
-	if err = syscall.Setresgid(gid, gid, gid); err != nil {
+func SwitchUser(c *syscall.Credential) (err error) {
+	if _, _, err := syscall.RawSyscall(syscall.SYS_SETGID, uintptr(c.Gid), 0, 0); err != 0 {
 		return err
 	}
-	if err = syscall.Setresuid(uid, uid, uid); err != nil {
+
+	if _, _, err := syscall.RawSyscall(syscall.SYS_SETUID, uintptr(c.Uid), 0, 0); err != 0 {
 		return err
 	}
 

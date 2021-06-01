@@ -90,12 +90,42 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := system.CreateStateDirs(kind); err != nil {
-		log.Warningf("Failed to create /run directories: %+v", err)
+	cred, err := system.GetUserCredentials("")
+	if err != nil {
+		log.Warningf("Failed to get current user credentials: %+v", err)
+	} else {
+		if cred.Uid == 0 {
+			u, err := system.GetUserCredentials("cloud-network")
+			if err != nil {
+				log.Warningf("Failed to get 'user cloud-network' credentials: %+v", err)
+			} else {
+
+				if err := system.CreateStateDirs(kind, int(u.Uid), int(u.Gid)); err != nil {
+					log.Println(err)
+				}
+
+				if err := system.EnableKeepCapability(); err != nil {
+					log.Warningf("Failed to enable keep capabilities: %+v", err)
+				}
+
+				if err := system.SwitchUser(u); err != nil {
+					log.Warningf("Failed to switch user: %+v", err)
+				}
+
+				if err := system.DisableKeepCapability(); err != nil {
+					log.Warningf("Failed to disable keep capabilities: %+v", err)
+				}
+
+				err := system.ApplyCapability(u)
+				if err != nil {
+					log.Warningf("Failed to apply capabilities: +%v", err)
+				}
+			}
+		}
 	}
 
 	if err := retriveMetaDataAndConfigure(m); err != nil {
-		log.Errorf("Failed to fetch instance metadata and configure: %+v", err)
+		log.Printf("Failed to: %+v", err)
 	}
 
 	configureSupplementaryLinks(c.Network.Supplementary)
@@ -107,7 +137,7 @@ func main() {
 			<-tick
 			err = retriveMetaDataAndConfigure(m)
 			if err != nil {
-				log.Errorf("Failed to refresh instance metadata from endpoint '%s': %+v", m.Kind, err)
+				log.Errorf("Failed to: %+v", err)
 			}
 		}
 	}()

@@ -13,12 +13,12 @@ func AddAddress(ifIndex int, address string) error {
 		return err
 	}
 
-	a, err := netlink.ParseAddr(address)
+	addr, err := netlink.ParseAddr(address)
 	if err != nil {
 		return err
 	}
 
-	if err := netlink.AddrAdd(link, a); err != nil && err.Error() != "file exists" {
+	if err := netlink.AddrAdd(link, addr); err != nil && err.Error() != "file exists" {
 		return err
 	}
 
@@ -31,12 +31,12 @@ func SetAddress(name string, address string) error {
 		return err
 	}
 
-	a, err := netlink.ParseAddr(address)
+	addr, err := netlink.ParseAddr(address)
 	if err != nil {
 		return err
 	}
 
-	if err := netlink.AddrReplace(link, a); err != nil {
+	if err := netlink.AddrReplace(link, addr); err != nil {
 		return nil
 	}
 

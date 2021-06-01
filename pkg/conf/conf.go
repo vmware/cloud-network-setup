@@ -15,14 +15,15 @@ import (
 )
 
 const (
-	Version  = "0.1"
+	Version = "0.1"
+
+	ConfFile = "cloud-network"
 	ConfPath = "/etc/cloud-network"
 
 	SystemStateDir   = "/run/cloud-network"
-	ProviderStateDir = SystemStateDir + "/provider"
-	LinkStateDir     = SystemStateDir + "/links"
 	SystemState      = SystemStateDir + "/system"
-	ConfFile         = "cloud-network"
+	LinkStateDir     = SystemStateDir + "/links"
+	ProviderStateDir = SystemStateDir + "/provider"
 
 	DefaultHttpRequestTimeout = 10000
 )
@@ -128,20 +129,20 @@ func Parse() (*Config, error) {
 
 	err = viper.Unmarshal(&conf)
 	if err != nil {
-		logrus.Warningf("Failed to decode configuration: '%+v'", err)
+		logrus.Warningf("Failed to parse configuration: '%+v'", err)
 		return nil, err
 	}
 
 	_, err = parser.ParseIP(conf.Network.Address)
 	if err != nil {
 		logrus.Warningf("Failed to parse Address='%+v' port='%+v': %+v", conf.Network.Address, conf.Network.Port, err)
-		IPFlag = conf.Network.Address
+		conf.Network.Address = IPFlag
 	}
 
 	_, err = parser.ParsePort(conf.Network.Port)
 	if err != nil {
 		logrus.Warningf("Failed to parse Port='%+v': %+v", conf.Network.Port, err)
-		PortFlag = conf.Network.Port
+		conf.Network.Port = PortFlag
 	}
 
 	t, err := time.ParseDuration(conf.System.RefreshTimer)

@@ -17,7 +17,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloud-network-setup/pkg/conf"
-	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
 )
@@ -201,29 +200,21 @@ func (g *GCP) ConfigureNetworkFromCloudMeta(m *Environment) error {
 
 func (g *GCP) SaveCloudMetadata() error {
 	if err := system.CreateAndSaveJSON(conf.SystemState, g.meta); err != nil {
-		log.Errorf("Failed to write to '%s': %+v", conf.SystemState, err)
 		return err
 	}
 
 	return nil
 }
 
-func (g *GCP) LinkSaveCloudMetadata() error {
-	links, err := network.AcquireLinks()
-	if err != nil {
-		return err
-	}
-
+func (g *GCP) LinkSaveCloudMetadata(m *Environment) error {
 	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
-		l, b := links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
+		l, b := m.links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !b {
 			continue
 		}
 
 		link := g.meta.Instance.Networkinterfaces[i]
-		err = system.CreateAndSaveJSON(path.Join(conf.LinkStateDir, strconv.Itoa(l.Ifindex)), link)
-		if err != nil {
-			log.Errorf("Failed write to link='%s' state: %+v", l.Name, err)
+		if err := system.CreateAndSaveJSON(path.Join(conf.LinkStateDir, strconv.Itoa(l.Ifindex)), link); err != nil {
 			return err
 		}
 	}
