@@ -47,16 +47,16 @@ func displayAzureCloudNetworkMetadata(links *network.Links, n *provider.AzureMet
 			publicIp += fmt.Sprintf("%s ", n.Network.Interface[i].Ipv4.IPAddress[j].PublicIpAddress)
 		}
 
-		l, ok := links.LinksByMAC[strings.ToLower(parser.FormatTextToMAC(n.Network.Interface[i].MacAddress))]
+		l, ok := links.LinksByMAC[strings.ToLower(parser.ParseMAC(n.Network.Interface[i].MacAddress))]
 		if !ok {
 			continue
 		}
 
-		fmt.Printf("             Name: %+v \n", l.Name)
-		fmt.Printf("      MAC Address: %+v \n", strings.ToLower(parser.FormatTextToMAC(n.Network.Interface[i].MacAddress)))
-		fmt.Printf("        Public IP: %+v \n", publicIp)
-		fmt.Printf("       Private IP: %+v \n", privateIp)
-		fmt.Printf("           Subnet: %+v \n\n", subnet.Address)
+		fmt.Printf("       Name: %+v \n", l.Name)
+		fmt.Printf("MAC Address: %+v \n", strings.ToLower(parser.ParseMAC(n.Network.Interface[i].MacAddress)))
+		fmt.Printf("  Public IP: %+v \n", publicIp)
+		fmt.Printf(" Private IP: %+v \n", privateIp)
+		fmt.Printf("     Subnet: %+v \n", subnet.Address)
 	}
 
 	return nil
@@ -90,7 +90,7 @@ func displayEC2CloudNetworkMetadata(l *network.Link, n *provider.EC2MAC) error {
 
 	fmt.Printf("              VpcID: %+v \n", n.VpcID)
 	fmt.Printf("   VpcIpv4CidrBlock: %+v \n", n.VpcIpv4CidrBlock)
-	fmt.Printf("  VpcIpv4CidrBlocks: %+v \n\n", n.VpcIpv4CidrBlocks)
+	fmt.Printf("  VpcIpv4CidrBlocks: %+v \n", n.VpcIpv4CidrBlocks)
 
 	return nil
 }

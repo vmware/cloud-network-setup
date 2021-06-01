@@ -161,7 +161,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 	a := make(map[string]bool)
 
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
-		if strings.ToLower(parser.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress)) != mac {
+		if strings.ToLower(parser.ParseMAC(az.meta.Network.Interface[i].MacAddress)) != mac {
 			continue
 		}
 
@@ -184,7 +184,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 
 func (az *Azure) ConfigureNetworkFromCloudMeta(m *Environment) error {
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
-		mac := strings.ToLower(parser.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
+		mac := strings.ToLower(parser.ParseMAC(az.meta.Network.Interface[i].MacAddress))
 
 		l, ok := m.links.LinksByMAC[mac]
 		if !ok {
@@ -214,7 +214,7 @@ func (az *Azure) SaveCloudMetadata() error {
 
 func (az *Azure) LinkSaveCloudMetadata(m *Environment) error {
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
-		mac := strings.ToLower(parser.FormatTextToMAC(az.meta.Network.Interface[i].MacAddress))
+		mac := strings.ToLower(parser.ParseMAC(az.meta.Network.Interface[i].MacAddress))
 		l, b := m.links.LinksByMAC[mac]
 		if !b {
 			continue
@@ -229,8 +229,11 @@ func (az *Azure) LinkSaveCloudMetadata(m *Environment) error {
 	return nil
 }
 
-func (e *Environment) routerGetCompute(rw http.ResponseWriter, r *http.Request) {
-	web.JSONResponse(e.az.meta, rw)
+func (m *Environment) routerGetCompute(rw http.ResponseWriter, r *http.Request) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	web.JSONResponse(m.az.meta, rw)
 }
 
 func RegisterRouterAzure(r *mux.Router, e *Environment) {

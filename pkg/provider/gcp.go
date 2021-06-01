@@ -221,8 +221,11 @@ func (g *GCP) LinkSaveCloudMetadata(m *Environment) error {
 	return nil
 }
 
-func (e *Environment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
-	web.JSONResponse(e.gcp.meta, rw)
+func (m *Environment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	web.JSONResponse(m.gcp.meta, rw)
 }
 
 func RegisterRouterGCP(r *mux.Router, e *Environment) {

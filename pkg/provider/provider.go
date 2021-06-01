@@ -7,6 +7,7 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -27,6 +28,8 @@ type Environment struct {
 	addressesByMAC            map[string][]string
 	routingRulesByAddressFrom map[string]*network.IPRoutingRule
 	routingRulesByAddressTo   map[string]*network.IPRoutingRule
+
+	mutex *sync.Mutex
 }
 
 func New(provider string) *Environment {
@@ -36,6 +39,7 @@ func New(provider string) *Environment {
 		addressesByMAC:            make(map[string][]string),
 		routingRulesByAddressFrom: make(map[string]*network.IPRoutingRule),
 		routingRulesByAddressTo:   make(map[string]*network.IPRoutingRule),
+		mutex:                     &sync.Mutex{},
 	}
 
 	switch provider {
@@ -59,6 +63,9 @@ func AcquireCloudMetadata(m *Environment) error {
 		log.Errorf("Failed to acquire link information: %+v", err)
 		return err
 	}
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	switch m.Kind {
 	case cloud.Azure:

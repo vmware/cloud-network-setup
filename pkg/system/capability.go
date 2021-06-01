@@ -4,7 +4,6 @@
 package system
 
 import (
-	"fmt"
 	"syscall"
 
 	"github.com/syndtr/gocapability/capability"
@@ -18,8 +17,7 @@ func ApplyCapability(c *syscall.Credential) error {
 	}
 
 	caps.Set(capability.CAPS|capability.BOUNDS|capability.AMBIENT, capability.CAP_NET_ADMIN)
-	if e := caps.Apply(capability.CAPS | capability.BOUNDS | capability.AMBIENT); e != nil {
-		err = fmt.Errorf("failed to apply capabilities: %w", e)
+	if err := caps.Apply(capability.CAPS | capability.BOUNDS | capability.AMBIENT); err != nil {
 		return err
 	}
 

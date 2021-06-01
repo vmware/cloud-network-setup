@@ -100,9 +100,8 @@ func main() {
 		if cred.Uid == 0 {
 			u, err := system.GetUserCredentials("cloud-network")
 			if err != nil {
-				log.Warningf("Failed to get 'user cloud-network' credentials: %+v", err)
+				log.Warningf("Failed to get user 'cloud-network' credentials: %+v", err)
 			} else {
-
 				if err := system.CreateStateDirs(kind, int(u.Uid), int(u.Gid)); err != nil {
 					log.Println(err)
 				}

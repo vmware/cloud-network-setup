@@ -417,27 +417,39 @@ func (ec2 *EC2) LinkSaveCloudMetadata(m *Environment) error {
 	return nil
 }
 
-func (e *Environment) routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
-	web.JSONResponse(e.ec2.system, rw)
+func (m *Environment) routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	web.JSONResponse(m.ec2.system, rw)
 }
 
-func (e *Environment) routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
-	web.JSONResponse(e.ec2.network, rw)
+func (m *Environment) routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	web.JSONResponse(m.ec2.network, rw)
 }
 
-func (e *Environment) routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
-	web.JSONResponse(e.ec2.credentials, rw)
+func (m *Environment) routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	web.JSONResponse(m.ec2.credentials, rw)
 }
 
-func (e *Environment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
+func (m *Environment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	if strings.HasSuffix(r.URL.Path, "document") {
-		web.JSONResponse(e.ec2.document, rw)
+		web.JSONResponse(m.ec2.document, rw)
 	} else if strings.HasSuffix(r.URL.Path, "pkcs7") {
-		web.JSONResponse(e.ec2.pkcs7, rw)
+		web.JSONResponse(m.ec2.pkcs7, rw)
 	} else if strings.HasSuffix(r.URL.Path, "signature") {
-		web.JSONResponse(e.ec2.signature, rw)
+		web.JSONResponse(m.ec2.signature, rw)
 	} else if strings.HasSuffix(r.URL.Path, "rsa2048") {
-		web.JSONResponse(e.ec2.rsa2048, rw)
+		web.JSONResponse(m.ec2.rsa2048, rw)
 	}
 }
 

@@ -4,20 +4,20 @@
 package parser
 
 import (
-	"fmt"
+	"errors"
 	"net"
 	"strconv"
 )
 
 func ParseIP(ip string) (net.IP, error) {
 	if len(ip) == 0 {
-		return nil, fmt.Errorf("ParseIP")
+		return nil, errors.New("invalid")
 	}
 
 	a := net.ParseIP(ip)
 
 	if a.To4() == nil || a.To16() == nil {
-		return nil, fmt.Errorf("ParseIP")
+		return nil, errors.New("invalid")
 	}
 
 	return a, nil
@@ -36,8 +36,8 @@ func ParsePort(port string) (uint16, error) {
 	return uint16(p), nil
 }
 
-// FormatTextToMAC - Splits MAC address without ':' or '-' into MAC address format by inserting ':'
-func FormatTextToMAC(s string) string {
+// Splits MAC address without ':' or '-' into MAC address format by inserting ':'
+func ParseMAC(s string) string {
 	for i := 2; i < len(s); i += 3 {
 		s = s[:i] + ":" + s[i:]
 	}
