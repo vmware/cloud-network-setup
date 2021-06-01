@@ -146,8 +146,7 @@ func (az *Azure) FetchCloudMetadata() error {
 	client.SetHeader("Metadata", "True")
 
 	resp, err := client.R().Get("http://" + AzureIMDSRESTEndpoint + AzureMetadtaURLBase + AzureAPIVersion)
-	if resp.StatusCode() != 200 {
-		log.Errorf("Failed to fetch metadata from Azure Instance Metadata Service: '%+v'", resp.StatusCode())
+	if err != nil && resp.StatusCode() != 200 {
 		return err
 	}
 

@@ -159,7 +159,6 @@ func fetchCloudMetadataByURL(url string) []string {
 
 	resp, err := client.Get(url)
 	if err != nil {
-		log.Errorf("Failed to fetch instance metadata from endpoint: '%v'", err)
 		return nil
 	}
 	defer resp.Body.Close()
@@ -237,8 +236,7 @@ func fetchMetadata(url string) ([]byte, error) {
 	client.SetTimeout(time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond)
 
 	resp, err := client.R().Get(url)
-	if resp.StatusCode() != 200 {
-		log.Errorf("Failed to fetch metadata from EC2 Instance Metadata Service: '%+v'", resp.StatusCode())
+	if err != nil && resp.StatusCode() != 200 {
 		return nil, err
 	}
 

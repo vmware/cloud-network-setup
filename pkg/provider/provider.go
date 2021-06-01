@@ -72,7 +72,7 @@ func AcquireCloudMetadata(m *Environment) error {
 	}
 
 	if err != nil {
-		log.Warningf("Failed to retrieve cloud provider '%+v' instance metadata: %+v", m.Kind, err)
+		log.Errorf("Failed to retrieve cloud provider '%+v' instance metadata: %+v", m.Kind, err)
 		return err
 	}
 

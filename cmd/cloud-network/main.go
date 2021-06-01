@@ -49,19 +49,22 @@ func configureSupplementaryLinks(s string) error {
 	return nil
 }
 
-func retriveMetaDataAndConfigure(m *provider.Environment) error {
+func cloudNetworkBegin(m *provider.Environment) error {
+	log.Debugf("Connecting to metadata server (%s) ...", m.Kind)
+
 	if err := provider.AcquireCloudMetadata(m); err != nil {
-		log.Errorf("Failed to fetch cloud metadata from endpoint: %+v", err)
 		return err
 	}
 
-	if err := provider.SaveMetaData(m); err != nil {
-		log.Errorf("Failed to save cloud metadata: %+v", err)
-		return err
-	}
+	log.Debugf("Configuring network from (%s) metadata", m.Kind)
 
 	if err := provider.ConfigureNetworkMetadata(m); err != nil {
-		log.Errorf("Failed to configure cloud metadata link address: %+v", err)
+		return err
+	}
+
+	log.Debugf("Saving (%s) metadata", m.Kind)
+
+	if err := provider.SaveMetaData(m); err != nil {
 		return err
 	}
 
@@ -69,7 +72,7 @@ func retriveMetaDataAndConfigure(m *provider.Environment) error {
 }
 
 func main() {
-	log.Infof("cloud-network-setup: v%+v (built '%+v')", conf.Version, runtime.Version())
+	log.Infof("cloud-network: v%+v (built '%+v')", conf.Version, runtime.Version())
 
 	kind := cloud.DetectCloud()
 	if len(kind) <= 0 {
@@ -77,7 +80,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Infof("Detected cloud environment: '%s'", kind)
+	log.Infof("Detected cloud environment (%s)", kind)
 
 	c, err := conf.Parse()
 	if err != nil {
@@ -124,20 +127,21 @@ func main() {
 		}
 	}
 
-	if err := retriveMetaDataAndConfigure(m); err != nil {
-		log.Printf("Failed to: %+v", err)
+	err = cloudNetworkBegin(m)
+	if err != nil {
+		log.WithError(err)
+	} else {
+		configureSupplementaryLinks(c.Network.Supplementary)
 	}
-
-	configureSupplementaryLinks(c.Network.Supplementary)
 
 	// Periodic timer to fetch data from endpoint
 	go func() {
 		tick := time.Tick(time.Duration(conf.RefreshTimerFlag.Seconds()) * time.Second)
 		for {
 			<-tick
-			err = retriveMetaDataAndConfigure(m)
+			err = cloudNetworkBegin(m)
 			if err != nil {
-				log.Errorf("Failed to: %+v", err)
+				log.WithError(err)
 			}
 		}
 	}()

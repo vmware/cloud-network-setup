@@ -127,8 +127,7 @@ func (g *GCP) FetchCloudMetadata() error {
 	client.SetHeader("Metadata-Flavor", "Google")
 
 	resp, err := client.R().Get("http://" + GCPIMDSRESTEndpoint + GCPMetadataURLBase)
-	if resp.StatusCode() != 200 {
-		log.Errorf("Failed to fetch metadata from GCP Instance Metadata Service: '%+v'", resp.StatusCode())
+	if err != nil && resp.StatusCode() != 200 {
 		return err
 	}
 
