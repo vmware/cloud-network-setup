@@ -453,9 +453,9 @@ func (m *Environment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter
 	}
 }
 
-func RegisterRouterEC2(r *mux.Router, e *Environment) {
-	r.HandleFunc("/system", e.routerGetEC2System).Methods("GET")
-	r.HandleFunc("/network", e.routerGetEC2Network).Methods("GET")
-	r.HandleFunc("/credentials", e.routerGetEC2Credentials).Methods("GET")
-	r.HandleFunc("/dynamicinstanceidentity/{category}", e.routerGetEC2DynamicInstanceIdentity).Methods("GET")
+func RegisterRouterEC2(r *mux.Router, m *Environment) {
+	r.HandleFunc("/system", m.routerGetEC2System).Methods("GET")
+	r.HandleFunc("/network", m.routerGetEC2Network).Methods("GET")
+	r.HandleFunc("/credentials", m.routerGetEC2Credentials).Methods("GET")
+	r.HandleFunc("/dynamicinstanceidentity/{category}", m.routerGetEC2DynamicInstanceIdentity).Methods("GET")
 }

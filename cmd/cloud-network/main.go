@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -24,30 +23,6 @@ import (
 	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/system"
 )
-
-func configureSupplementaryLinks(s string) error {
-	words := strings.Fields(s)
-	if len(words) <= 0 {
-		return nil
-	}
-
-	for _, w := range words {
-		link, err := net.InterfaceByName(w)
-		if err != nil {
-			log.Warningf("Failed to find link='%s'. Ignoring ...: %+v", w, err)
-			continue
-		}
-
-		if err = network.ConfigureByIndex(link.Index); err != nil {
-			log.Errorf("Failed to configure network for link='%s' ifindex='%d': %+v", link.Name, link.Index, err)
-			return err
-		}
-
-		log.Debugf("Successfully configured network for link='%s' ifindex='%d'", link.Name, link.Index)
-	}
-
-	return nil
-}
 
 func cloudNetworkBegin(m *provider.Environment) error {
 	log.Debugf("Connecting to metadata server (%s) ...", m.Kind)
@@ -130,7 +105,7 @@ func main() {
 	if err != nil {
 		log.WithError(err)
 	} else {
-		configureSupplementaryLinks(c.Network.Supplementary)
+		network.ConfigureSupplementaryLinks(c.Network.Supplementary)
 	}
 
 	// Periodic timer to fetch data from endpoint

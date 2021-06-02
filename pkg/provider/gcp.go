@@ -228,7 +228,7 @@ func (m *Environment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
 	web.JSONResponse(m.gcp.meta, rw)
 }
 
-func RegisterRouterGCP(r *mux.Router, e *Environment) {
-	r.HandleFunc("/network", e.routerGetGCP).Methods("GET")
-	r.HandleFunc("/system", e.routerGetGCP).Methods("GET")
+func RegisterRouterGCP(r *mux.Router, m *Environment) {
+	r.HandleFunc("/network", m.routerGetGCP).Methods("GET")
+	r.HandleFunc("/system", m.routerGetGCP).Methods("GET")
 }

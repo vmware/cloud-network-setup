@@ -4,8 +4,10 @@
 package network
 
 import (
+	"net"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )
 
@@ -50,6 +52,31 @@ func ConfigureByIndex(ifIndex int) error {
 			}
 			break
 		}
+	}
+
+	return nil
+}
+
+// When both links in same subnet
+func ConfigureSupplementaryLinks(s string) error {
+	words := strings.Fields(s)
+	if len(words) <= 0 {
+		return nil
+	}
+
+	for _, w := range words {
+		link, err := net.InterfaceByName(w)
+		if err != nil {
+			log.Debugf("Failed to find link='%s'. Ignoring ...: %+v", w, err)
+			continue
+		}
+
+		if err = ConfigureByIndex(link.Index); err != nil {
+			log.Errorf("Failed to configure network for link='%s' ifindex='%d': %+v", link.Name, link.Index, err)
+			return err
+		}
+
+		log.Debugf("Successfully configured network for link='%s' ifindex='%d'", link.Name, link.Index)
 	}
 
 	return nil

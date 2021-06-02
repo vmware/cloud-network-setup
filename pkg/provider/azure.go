@@ -236,7 +236,7 @@ func (m *Environment) routerGetCompute(rw http.ResponseWriter, r *http.Request) 
 	web.JSONResponse(m.az.meta, rw)
 }
 
-func RegisterRouterAzure(r *mux.Router, e *Environment) {
-	r.HandleFunc("/network", e.routerGetCompute).Methods("GET")
-	r.HandleFunc("/system", e.routerGetCompute).Methods("GET")
+func RegisterRouterAzure(r *mux.Router, m *Environment) {
+	r.HandleFunc("/network", m.routerGetCompute).Methods("GET")
+	r.HandleFunc("/system", m.routerGetCompute).Methods("GET")
 }
