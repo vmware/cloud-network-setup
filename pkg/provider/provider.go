@@ -90,6 +90,9 @@ func AcquireCloudMetadata(m *Environment) error {
 }
 
 func ConfigureNetworkMetadata(m *Environment) error {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
 	switch m.Kind {
 	case cloud.Azure:
 		return m.az.ConfigureNetworkFromCloudMeta(m)
@@ -120,8 +123,8 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 		}
 
 		// Purge old addresses
-		for i, _ := range earlierAddresses {
-			_, ok := newAddresses[i]
+		for i := range earlierAddresses {
+			ok := newAddresses[i]
 			if !ok {
 				if err := network.RemoveIPAddress(link.Name, i); err != nil {
 					log.Errorf("Failed to remove address='%s' from link='%s': '%+v'", i, link.Name, link.Ifindex, err)
@@ -397,38 +400,49 @@ func DropConfiguration(m *Environment, ifIndex int, address string) {
 		return
 	}
 
-	addresses, ok := m.AddressesByMAC[mac]
+	_, ok := m.AddressesByMAC[mac]
 	if !ok {
 		return
 	}
 
 	link := m.Links.LinksByMAC[mac]
 
+	log.Debugf("Dropping routing rules link='%s' ifindex='%d' address='%s'", link.Name, link.Ifindex, address)
+
+	dropRoutingRulesByAddress(m, address, &link)
+
 	log.Debugf("Dropping addresses link='%s' ifindex='%d' address='%s'", link.Name, link.Ifindex, address)
 
-	delete(addresses, address)
+	delete(m.AddressesByMAC[mac], address)
+}
 
-	log.Debugf("Dropping routing rules link='%s' ifindex='%d' address='%s' dropped", link.Name, link.Ifindex, address)
+func dropRoutingRulesByAddress(m *Environment, address string, link *network.Link) {
+	_, ok := m.RoutingRulesByAddressFrom[address]
+	if ok {
+		from := &network.IPRoutingRule{
+			From:  address,
+			Table: m.RouteTable + link.Ifindex,
+		}
 
-	from := &network.IPRoutingRule{
-		From:  address,
-		Table: m.RouteTable + link.Ifindex,
+		if err := network.RemoveRoutingPolicyRule(from); err != nil {
+			log.Debugf("Failed to drop routing rules 'from' link='%s' ifindex='%d' address='%s': %+v", link.Name, link.Ifindex, address, err)
+		}
+		delete(m.RoutingRulesByAddressFrom, address)
+
 	}
+	_, ok = m.RoutingRulesByAddressTo[address]
+	if ok {
 
-	if err := network.RemoveRoutingPolicyRule(from); err != nil {
-		log.Debugf("Failed to drop routing rules 'from' link='%s' ifindex='%d' address='%s': %+v", link.Name, link.Ifindex, address, err)
-	}
-	delete(m.RoutingRulesByAddressFrom, address)
+		to := &network.IPRoutingRule{
+			To:    address,
+			Table: m.RouteTable + link.Ifindex,
+		}
 
-	to := &network.IPRoutingRule{
-		To:    address,
-		Table: m.RouteTable + link.Ifindex,
+		if err := network.RemoveRoutingPolicyRule(to); err != nil {
+			log.Debugf("Failed to drop routing rules 'to' link='%s' ifindex='%d' address='%s': %+v", link.Name, link.Ifindex, address, err)
+		}
+		delete(m.RoutingRulesByAddressTo, address)
 	}
-
-	if err := network.RemoveRoutingPolicyRule(to); err != nil {
-		log.Debugf("Failed to drop routing rules 'to' link='%s' ifindex='%d' address='%s': %+v", link.Name, link.Ifindex, address, err)
-	}
-	delete(m.RoutingRulesByAddressTo, address)
 }
 
 func WatchNetwork(m *Environment) {
