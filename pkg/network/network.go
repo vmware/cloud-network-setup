@@ -49,6 +49,15 @@ func ConfigureByIndex(ifIndex int) error {
 				if err := AddRoutingPolicyRule(from); err != nil {
 					return err
 				}
+
+				to := &IPRoutingRule{
+					To:    a,
+					Table: ROUTE_TABLE_BASE + link.Attrs().Index,
+				}
+
+				if err := AddRoutingPolicyRule(to); err != nil {
+					return err
+				}
 			}
 			break
 		}
