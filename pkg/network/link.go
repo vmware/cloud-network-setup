@@ -4,6 +4,8 @@
 package network
 
 import (
+	"errors"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )
@@ -53,6 +55,16 @@ func AcquireLinks() (Links, error) {
 	}, nil
 }
 
+func GetLinkMacByIndex(links *Links, ifIndex int) (string, error) {
+	for _, l := range links.LinksByMAC {
+		if l.Ifindex == ifIndex {
+			return l.Mac, nil
+		}
+	}
+
+	return "", errors.New("not found")
+}
+
 func SetLinkOperStateUp(ifIndex int) error {
 	links, err := netlink.LinkList()
 	if err != nil {
@@ -79,8 +91,7 @@ func SetLinkMtu(ifIndex int, mtu int) error {
 
 	for _, link := range links {
 		if link.Attrs().Index == ifIndex {
-			err := netlink.LinkSetMTU(link, mtu)
-			if err != nil {
+			if err := netlink.LinkSetMTU(link, mtu); err != nil {
 				return err
 			}
 		}

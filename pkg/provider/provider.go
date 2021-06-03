@@ -6,14 +6,16 @@ package provider
 import (
 	"errors"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"time"
 
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 )
 
 type Environment struct {
@@ -23,23 +25,25 @@ type Environment struct {
 	gcp *GCP
 	ec2 *EC2
 
-	links                     network.Links
-	routeTable                int
-	addressesByMAC            map[string][]string
-	routingRulesByAddressFrom map[string]*network.IPRoutingRule
-	routingRulesByAddressTo   map[string]*network.IPRoutingRule
+	Links                     network.Links
+	RouteTable                int
+	AddressesByMAC            map[string]map[string]bool
+	RoutingRulesByAddressFrom map[string]*network.IPRoutingRule
+	RoutingRulesByAddressTo   map[string]*network.IPRoutingRule
 
-	mutex *sync.Mutex
+	AddrChan netlink.AddrUpdate
+
+	Mutex *sync.Mutex
 }
 
 func New(provider string) *Environment {
 	m := &Environment{
 		Kind:                      provider,
-		routeTable:                network.ROUTE_TABLE_BASE,
-		addressesByMAC:            make(map[string][]string),
-		routingRulesByAddressFrom: make(map[string]*network.IPRoutingRule),
-		routingRulesByAddressTo:   make(map[string]*network.IPRoutingRule),
-		mutex:                     &sync.Mutex{},
+		RouteTable:                network.ROUTE_TABLE_BASE,
+		AddressesByMAC:            make(map[string]map[string]bool),
+		RoutingRulesByAddressFrom: make(map[string]*network.IPRoutingRule),
+		RoutingRulesByAddressTo:   make(map[string]*network.IPRoutingRule),
+		Mutex:                     &sync.Mutex{},
 	}
 
 	switch provider {
@@ -55,17 +59,70 @@ func New(provider string) *Environment {
 	return m
 }
 
+func WatchNetwork(m *Environment) {
+	for {
+		updates := make(chan netlink.AddrUpdate)
+		done := make(chan struct{})
+
+		if err := netlink.AddrSubscribeWithOptions(updates, done, netlink.AddrSubscribeOptions{
+			ErrorCallback: func(err error) {
+				log.Errorf("Received error from IP address update subscription: %v", err)
+			},
+		}); err != nil {
+			log.Errorf("Failed to subscribe IP address update: %v", err)
+		}
+
+		select {
+		case <-done:
+			log.Info("Address watcher stopped / failed")
+			goto restart
+		case updates, ok := <-updates:
+			if !ok {
+				goto restart
+			}
+
+			a := updates.LinkAddress.IP.String()
+			mask, _ := updates.LinkAddress.Mask.Size()
+
+			ip := a + "/" + strconv.Itoa(mask)
+
+			log.Infof("Received IP update: %v", updates)
+
+			if updates.NewAddr {
+				log.Infof("IP address='%s' added to link ifindex='%d'", ip, updates.LinkIndex)
+			} else {
+				log.Infof("IP address='%s' removed from link ifindex='%d'", ip, updates.LinkIndex)
+
+				mac, err := network.GetLinkMacByIndex(&m.Links, updates.LinkIndex)
+				if err != nil {
+					break
+				}
+
+				addresses := m.AddressesByMAC[mac]
+				m.Mutex.Lock()
+
+				delete(addresses, ip)
+
+				m.Mutex.Unlock()
+			}
+		}
+
+	restart:
+		time.Sleep(1 * time.Second)
+	}
+}
+
 func AcquireCloudMetadata(m *Environment) error {
 	var err error
 
-	m.links, err = network.AcquireLinks()
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
+	m.Links, err = network.AcquireLinks()
 	if err != nil {
 		log.Errorf("Failed to acquire link information: %+v", err)
-		return err
+		return nil
 	}
-
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
 
 	switch m.Kind {
 	case cloud.Azure:
@@ -102,28 +159,28 @@ func ConfigureNetworkMetadata(m *Environment) error {
 func (m *Environment) configureNetwork(link *network.Link, newAddresses map[string]bool) error {
 	existingAddresses, err := network.GetIPv4Addresses(link.Name)
 	if err != nil {
-		log.Errorf("Failed to fetch Ip addresses of link='%+v' ifindex='%+v': %+v", link.Name, link.Ifindex, err)
+		log.Errorf("Failed to fetch Ip addresses of link='%s' ifindex='%d': %+v", link.Name, link.Ifindex, err)
 		return err
 	}
 
-	if len(m.addressesByMAC[link.Mac]) > 0 {
-		earlierAddresses := m.addressesByMAC[link.Mac]
+	if len(m.AddressesByMAC[link.Mac]) > 0 {
+		earlierAddresses := m.AddressesByMAC[link.Mac]
 
 		eq := reflect.DeepEqual(newAddresses, earlierAddresses)
 		if eq {
-			log.Debugf("Old metadata addresses='%+v' and new addresses='%+v' received from endpoint are equal. Skipping ...",
-				existingAddresses, newAddresses)
+			log.Debugf("Old metadata addresses='%s' and new addresses='%s' received from endpoint are equal. Skipping ...",
+				earlierAddresses, newAddresses)
 			return nil
 		}
 
 		// Purge old addresses
-		for _, i := range earlierAddresses {
+		for i, _ := range earlierAddresses {
 			_, ok := newAddresses[i]
 			if !ok {
 				if err := network.RemoveIPAddress(link.Name, i); err != nil {
-					log.Errorf("Failed to remove address='%+v' from link='%+v': '%+v'", i, link.Name, link.Ifindex, err)
+					log.Errorf("Failed to remove address='%s' from link='%s': '%+v'", i, link.Name, link.Ifindex, err)
 				} else {
-					log.Infof("Successfully removed address='%+v on link='%+v' ifindex='%d'", i, link.Name, link.Ifindex)
+					log.Infof("Successfully removed address='%s on link='%s' ifindex='%d'", i, link.Name, link.Ifindex)
 				}
 
 				m.removeRoutingPolicyRule(i, link)
@@ -162,11 +219,11 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 			}
 
 			if err := network.SetAddress(link.Name, i); err != nil {
-				log.Errorf("Failed to add address='%+v' to link='%+v' ifindex='%d': %+v", i, link.Name, link.Ifindex, err)
+				log.Errorf("Failed to add address='%s' to link='%s' ifindex='%d': %+v", i, link.Name, link.Ifindex, err)
 				continue
 			}
 
-			log.Infof("Successfully added address='%+v on link='%+v' ifindex='%d'", i, link.Name, link.Ifindex)
+			log.Infof("Successfully added address='%s on link='%s' ifindex='%d'", i, link.Name, link.Ifindex)
 
 			// https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-multiple-ip-addresses-portal#add
 			// echo 150 custom >> /etc/iproute2/rt_tables
@@ -199,13 +256,8 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 
 		}
 	}
-	delete(m.addressesByMAC, link.Mac)
-
-	var a []string
-	for i := range newAddresses {
-		a = append(a, i)
-	}
-	m.addressesByMAC[link.Mac] = a
+	delete(m.AddressesByMAC, link.Mac)
+	m.AddressesByMAC[link.Mac] = newAddresses
 
 	return nil
 }
@@ -226,12 +278,12 @@ func (m *Environment) configureRoute(link *network.Link) error {
 		}
 	}
 
-	if err := network.AddRoute(link.Ifindex, m.routeTable+link.Ifindex, gw); err != nil {
-		log.Errorf("Failed to add default gateway='%s' for link='%+d' ifindex='%d' table='%d': %+v", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex, err)
+	if err := network.AddRoute(link.Ifindex, m.RouteTable+link.Ifindex, gw); err != nil {
+		log.Errorf("Failed to add default gateway='%s' for link='%+d' ifindex='%d' table='%d': %+v", gw, link.Name, link.Ifindex, m.RouteTable+link.Ifindex, err)
 		return err
 	}
 
-	log.Infof("Successfully added default gateway='%+v' for link='%+v' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.routeTable+link.Ifindex)
+	log.Infof("Successfully added default gateway='%s' for link='%s' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.RouteTable+link.Ifindex)
 
 	log.Infof("Link='%s' ifindex='%d' is now configured", link.Name, link.Ifindex)
 
@@ -244,57 +296,57 @@ func (m *Environment) configureRoutingPolicyRule(link *network.Link, address str
 
 	from := &network.IPRoutingRule{
 		From:  addr,
-		Table: m.routeTable + link.Ifindex,
+		Table: m.RouteTable + link.Ifindex,
 	}
 
 	err := network.AddRoutingPolicyRule(from)
 	if err != nil {
-		log.Errorf("Failed to add routing policy rule 'from' for link='%+v' ifindex='%+v' table='%d': %+v", link.Name, link.Ifindex, from.Table, err)
+		log.Errorf("Failed to add routing policy rule 'from' for link='%s' ifindex='%d' table='%d': %+v", link.Name, link.Ifindex, from.Table, err)
 		return err
 	} else {
-		log.Infof("Successfully added routing policy rule 'from' in route table='%d' for link='%+v' ifindex='%+v'", from.Table, link.Name, link.Ifindex)
+		log.Infof("Successfully added routing policy rule 'from' in route table='%d' for link='%s' ifindex='%+v'", from.Table, link.Name, link.Ifindex)
 	}
-	m.routingRulesByAddressFrom[address] = from
+	m.RoutingRulesByAddressFrom[address] = from
 
 	to := &network.IPRoutingRule{
 		To:    addr,
-		Table: m.routeTable + link.Ifindex,
+		Table: m.RouteTable + link.Ifindex,
 	}
 
 	err = network.AddRoutingPolicyRule(to)
 	if err != nil {
-		log.Errorf("Failed to add routing policy rule 'to' for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, to.Table, err)
+		log.Errorf("Failed to add routing policy rule 'to' for link='%s' ifindex='%d' table='%d': '%+v'", link.Name, link.Ifindex, to.Table, err)
 		return err
 	} else {
-		log.Infof("Successfully added routing policy rule 'to' in route table='%d' for link='%+v' ifindex='%+v'", to.Table, link.Name, link.Ifindex)
+		log.Infof("Successfully added routing policy rule 'to' in route table='%d' for link='%s' ifindex='%+v'", to.Table, link.Name, link.Ifindex)
 	}
-	m.routingRulesByAddressFrom[address] = from
+	m.RoutingRulesByAddressFrom[address] = from
 
 	return nil
 }
 
 func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link) error {
-	rule, ok := m.routingRulesByAddressFrom[address]
+	rule, ok := m.RoutingRulesByAddressFrom[address]
 	if ok {
 		err := network.RemoveRoutingPolicyRule(rule)
 		if err != nil {
-			log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
+			log.Errorf("Failed to add routing policy rule for link='%s' ifindex='%d' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
 		} else {
-			log.Debugf("Successfully removed routing policy rule for link='%+v' ifindex='%+v' table='%d'", link.Name, link.Ifindex, rule.Table)
+			log.Debugf("Successfully removed routing policy rule for link='%s' ifindex='%d' table='%d'", link.Name, link.Ifindex, rule.Table)
 		}
-		delete(m.routingRulesByAddressFrom, address)
+		delete(m.RoutingRulesByAddressFrom, address)
 
 	}
 
-	rule, ok = m.routingRulesByAddressTo[address]
+	rule, ok = m.RoutingRulesByAddressTo[address]
 	if ok {
 		err := network.RemoveRoutingPolicyRule(rule)
 		if err != nil {
-			log.Errorf("Failed to add routing policy rule for link='%+v' ifindex='%+v' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
+			log.Errorf("Failed to add routing policy rule for link='%s' ifindex='%d' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
 		}
-		delete(m.routingRulesByAddressTo, address)
+		delete(m.RoutingRulesByAddressTo, address)
 
-		log.Debugf("Successfully removed routing policy rule for link='%+v' ifindex='%+v' table='%d'", link.Name, link.Ifindex, rule.Table)
+		log.Debugf("Successfully removed routing policy rule for link='%s' ifindex='%d' table='%d'", link.Name, link.Ifindex, rule.Table)
 	}
 
 	return nil

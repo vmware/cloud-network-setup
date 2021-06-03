@@ -186,7 +186,7 @@ func (az *Azure) ConfigureNetworkFromCloudMeta(m *Environment) error {
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
 		mac := strings.ToLower(parser.ParseMAC(az.meta.Network.Interface[i].MacAddress))
 
-		l, ok := m.links.LinksByMAC[mac]
+		l, ok := m.Links.LinksByMAC[mac]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%+v'", mac)
 			continue
@@ -215,7 +215,7 @@ func (az *Azure) SaveCloudMetadata() error {
 func (az *Azure) LinkSaveCloudMetadata(m *Environment) error {
 	for i := 0; i < len(az.meta.Network.Interface); i++ {
 		mac := strings.ToLower(parser.ParseMAC(az.meta.Network.Interface[i].MacAddress))
-		l, b := m.links.LinksByMAC[mac]
+		l, b := m.Links.LinksByMAC[mac]
 		if !b {
 			continue
 		}
@@ -230,8 +230,8 @@ func (az *Azure) LinkSaveCloudMetadata(m *Environment) error {
 }
 
 func (m *Environment) routerGetCompute(rw http.ResponseWriter, r *http.Request) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
 
 	web.JSONResponse(m.az.meta, rw)
 }

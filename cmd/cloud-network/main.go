@@ -13,15 +13,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/okzk/sdnotify"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/system"
+	"github.com/gorilla/mux"
+	"github.com/okzk/sdnotify"
+	log "github.com/sirupsen/logrus"
 )
 
 func cloudNetworkBegin(m *provider.Environment) error {
@@ -101,6 +100,8 @@ func main() {
 		}
 	}
 
+	go provider.WatchNetwork(m)
+
 	err = cloudNetworkBegin(m)
 	if err != nil {
 		log.WithError(err)
@@ -111,7 +112,7 @@ func main() {
 	// Periodic timer to fetch data from endpoint
 	t, _ := time.ParseDuration(c.System.RefreshTimer)
 	go func() {
-		tick := time.Tick(t * time.Second)
+		tick := time.Tick(time.Duration(t.Seconds()) * time.Second)
 		for {
 			<-tick
 			err = cloudNetworkBegin(m)

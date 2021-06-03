@@ -179,7 +179,7 @@ func (g *GCP) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, 
 
 func (g *GCP) ConfigureNetworkFromCloudMeta(m *Environment) error {
 	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
-		l, ok := m.links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
+		l, ok := m.Links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%+v'", g.meta.Instance.Networkinterfaces[i].Mac)
 			continue
@@ -207,7 +207,7 @@ func (g *GCP) SaveCloudMetadata() error {
 
 func (g *GCP) LinkSaveCloudMetadata(m *Environment) error {
 	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
-		l, b := m.links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
+		l, b := m.Links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !b {
 			continue
 		}
@@ -222,8 +222,8 @@ func (g *GCP) LinkSaveCloudMetadata(m *Environment) error {
 }
 
 func (m *Environment) routerGetGCP(rw http.ResponseWriter, r *http.Request) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
 
 	web.JSONResponse(m.gcp.meta, rw)
 }

@@ -334,7 +334,7 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Environment) error {
 		n := EC2MAC{}
 		json.Unmarshal([]byte(j), &n)
 
-		link, ok := m.links.LinksByMAC[mac]
+		link, ok := m.Links.LinksByMAC[mac]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%+v'", mac)
 			continue
@@ -396,7 +396,7 @@ func (ec2 *EC2) SaveCloudMetadataIdentityCredentials() error {
 
 func (ec2 *EC2) LinkSaveCloudMetadata(m *Environment) error {
 	for k, v := range ec2.macs {
-		l, ok := m.links.LinksByMAC[k]
+		l, ok := m.Links.LinksByMAC[k]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%s'", k)
 			continue
@@ -418,29 +418,29 @@ func (ec2 *EC2) LinkSaveCloudMetadata(m *Environment) error {
 }
 
 func (m *Environment) routerGetEC2System(rw http.ResponseWriter, r *http.Request) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
 
 	web.JSONResponse(m.ec2.system, rw)
 }
 
 func (m *Environment) routerGetEC2Network(rw http.ResponseWriter, r *http.Request) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
 
 	web.JSONResponse(m.ec2.network, rw)
 }
 
 func (m *Environment) routerGetEC2Credentials(rw http.ResponseWriter, r *http.Request) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
 
 	web.JSONResponse(m.ec2.credentials, rw)
 }
 
 func (m *Environment) routerGetEC2DynamicInstanceIdentity(rw http.ResponseWriter, r *http.Request) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
 
 	if strings.HasSuffix(r.URL.Path, "document") {
 		web.JSONResponse(m.ec2.document, rw)
