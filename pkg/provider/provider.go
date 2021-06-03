@@ -30,8 +30,6 @@ type Environment struct {
 	RoutingRulesByAddressFrom map[string]*network.IPRoutingRule
 	RoutingRulesByAddressTo   map[string]*network.IPRoutingRule
 
-	AddrChan netlink.AddrUpdate
-
 	Mutex *sync.Mutex
 }
 
@@ -284,7 +282,6 @@ func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link
 			log.Debugf("Successfully removed routing policy rule for link='%s' ifindex='%d' table='%d'", link.Name, link.Ifindex, rule.Table)
 		}
 		delete(m.RoutingRulesByAddressFrom, address)
-
 	}
 
 	rule, ok = m.RoutingRulesByAddressTo[address]
@@ -377,6 +374,11 @@ func WatchLinks(m *Environment) {
 	}
 }
 
+func WatchNetwork(m *Environment) {
+	go WatchAddresses(m)
+	go WatchLinks(m)
+}
+
 func UpdateLink(m *Environment, link *network.Link) {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
@@ -409,45 +411,11 @@ func DropConfiguration(m *Environment, ifIndex int, address string) {
 
 	log.Debugf("Dropping routing rules link='%s' ifindex='%d' address='%s'", link.Name, link.Ifindex, address)
 
-	dropRoutingRulesByAddress(m, address, &link)
+	m.removeRoutingPolicyRule(address, &link)
 
 	log.Debugf("Dropping addresses link='%s' ifindex='%d' address='%s'", link.Name, link.Ifindex, address)
 
 	delete(m.AddressesByMAC[mac], address)
-}
-
-func dropRoutingRulesByAddress(m *Environment, address string, link *network.Link) {
-	_, ok := m.RoutingRulesByAddressFrom[address]
-	if ok {
-		from := &network.IPRoutingRule{
-			From:  address,
-			Table: m.RouteTable + link.Ifindex,
-		}
-
-		if err := network.RemoveRoutingPolicyRule(from); err != nil {
-			log.Debugf("Failed to drop routing rules 'from' link='%s' ifindex='%d' address='%s': %+v", link.Name, link.Ifindex, address, err)
-		}
-		delete(m.RoutingRulesByAddressFrom, address)
-
-	}
-	_, ok = m.RoutingRulesByAddressTo[address]
-	if ok {
-
-		to := &network.IPRoutingRule{
-			To:    address,
-			Table: m.RouteTable + link.Ifindex,
-		}
-
-		if err := network.RemoveRoutingPolicyRule(to); err != nil {
-			log.Debugf("Failed to drop routing rules 'to' link='%s' ifindex='%d' address='%s': %+v", link.Name, link.Ifindex, address, err)
-		}
-		delete(m.RoutingRulesByAddressTo, address)
-	}
-}
-
-func WatchNetwork(m *Environment) {
-	go WatchAddresses(m)
-	go WatchLinks(m)
 }
 
 func SaveMetaData(m *Environment) error {
