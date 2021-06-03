@@ -100,7 +100,8 @@ func main() {
 		}
 	}
 
-	go provider.WatchNetwork(m)
+	// Watch network events
+	provider.WatchNetwork(m)
 
 	err = cloudNetworkBegin(m)
 	if err != nil {

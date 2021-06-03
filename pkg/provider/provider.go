@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/network"
@@ -57,59 +56,6 @@ func New(provider string) *Environment {
 	}
 
 	return m
-}
-
-func WatchNetwork(m *Environment) {
-	for {
-		updates := make(chan netlink.AddrUpdate)
-		done := make(chan struct{})
-
-		if err := netlink.AddrSubscribeWithOptions(updates, done, netlink.AddrSubscribeOptions{
-			ErrorCallback: func(err error) {
-				log.Errorf("Received error from IP address update subscription: %v", err)
-			},
-		}); err != nil {
-			log.Errorf("Failed to subscribe IP address update: %v", err)
-		}
-
-		select {
-		case <-done:
-			log.Info("Address watcher stopped / failed")
-			goto restart
-		case updates, ok := <-updates:
-			if !ok {
-				goto restart
-			}
-
-			a := updates.LinkAddress.IP.String()
-			mask, _ := updates.LinkAddress.Mask.Size()
-
-			ip := a + "/" + strconv.Itoa(mask)
-
-			log.Infof("Received IP update: %v", updates)
-
-			if updates.NewAddr {
-				log.Infof("IP address='%s' added to link ifindex='%d'", ip, updates.LinkIndex)
-			} else {
-				log.Infof("IP address='%s' removed from link ifindex='%d'", ip, updates.LinkIndex)
-
-				mac, err := network.GetLinkMacByIndex(&m.Links, updates.LinkIndex)
-				if err != nil {
-					break
-				}
-
-				addresses := m.AddressesByMAC[mac]
-				m.Mutex.Lock()
-
-				delete(addresses, ip)
-
-				m.Mutex.Unlock()
-			}
-		}
-
-	restart:
-		time.Sleep(1 * time.Second)
-	}
 }
 
 func AcquireCloudMetadata(m *Environment) error {
@@ -350,6 +296,144 @@ func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link
 	}
 
 	return nil
+}
+
+func WatchAddresses(m *Environment) {
+	for {
+		updates := make(chan netlink.AddrUpdate)
+		done := make(chan struct{})
+
+		if err := netlink.AddrSubscribeWithOptions(updates, done, netlink.AddrSubscribeOptions{
+			ErrorCallback: func(err error) {
+				log.Errorf("Received error from IP address update subscription: %v", err)
+			},
+		}); err != nil {
+			log.Errorf("Failed to subscribe IP address update: %v", err)
+		}
+
+		select {
+		case <-done:
+			log.Info("Address watcher failed")
+		case updates, ok := <-updates:
+			if !ok {
+				break
+			}
+
+			a := updates.LinkAddress.IP.String()
+			mask, _ := updates.LinkAddress.Mask.Size()
+
+			ip := a + "/" + strconv.Itoa(mask)
+
+			log.Infof("Received IP update: %v", updates)
+
+			if updates.NewAddr {
+				log.Infof("IP address='%s' added to link ifindex='%d'", ip, updates.LinkIndex)
+			} else {
+				log.Infof("IP address='%s' removed from link ifindex='%d'", ip, updates.LinkIndex)
+
+				log.Debugf("Dropping configuration link ifindex='%d' address='%s'", updates.LinkIndex, ip)
+
+				DropConfiguration(m, updates.LinkIndex, ip)
+			}
+		}
+	}
+}
+
+func WatchLinks(m *Environment) {
+	for {
+		updates := make(chan netlink.LinkUpdate)
+		done := make(chan struct{})
+
+		if err := netlink.LinkSubscribeWithOptions(updates, done, netlink.LinkSubscribeOptions{
+			ErrorCallback: func(err error) {
+				log.Errorf("Received error from link update subscription: %v", err)
+			},
+		}); err != nil {
+			log.Errorf("Failed to subscribe link update: %v", err)
+		}
+
+		select {
+		case <-done:
+			log.Info("Link watcher failed")
+		case updates, ok := <-updates:
+			if !ok {
+				break
+			}
+
+			log.Infof("Received Link update: %v", updates)
+
+			link := network.Link{
+				Ifindex:   updates.Link.Attrs().Index,
+				Mac:       updates.Link.Attrs().HardwareAddr.String(),
+				MTU:       updates.Attrs().MTU,
+				OperState: updates.Attrs().OperState.String(),
+			}
+
+			UpdateLink(m, &link)
+		}
+	}
+}
+
+func UpdateLink(m *Environment, link *network.Link) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
+	l, ok := m.Links.LinksByMAC[link.Mac]
+	if !ok {
+		return
+	}
+
+	l.MTU = link.MTU
+	l.OperState = link.OperState
+}
+
+func DropConfiguration(m *Environment, ifIndex int, address string) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+
+	mac, err := network.GetLinkMacByIndex(&m.Links, ifIndex)
+	if err != nil {
+		log.Info("Failed to find Link ifindex='%d': %+v", ifIndex, err)
+		return
+	}
+
+	addresses, ok := m.AddressesByMAC[mac]
+	if !ok {
+		return
+	}
+
+	link := m.Links.LinksByMAC[mac]
+
+	log.Debugf("Dropping addresses link='%s' ifindex='%d' address='%s'", link.Name, link.Ifindex, address)
+
+	delete(addresses, address)
+
+	log.Debugf("Dropping routing rules link='%s' ifindex='%d' address='%s' dropped", link.Name, link.Ifindex, address)
+
+	from := &network.IPRoutingRule{
+		From:  address,
+		Table: m.RouteTable + link.Ifindex,
+	}
+
+	if err := network.RemoveRoutingPolicyRule(from); err != nil {
+		log.Debugf("Failed to drop routing rules 'from' link='%s' ifindex='%d' address='%s': %+v", link.Name, link.Ifindex, address, err)
+	}
+	delete(m.RoutingRulesByAddressFrom, address)
+
+	to := &network.IPRoutingRule{
+		To:    address,
+		Table: m.RouteTable + link.Ifindex,
+	}
+
+	if err := network.RemoveRoutingPolicyRule(to); err != nil {
+		log.Debugf("Failed to drop routing rules 'to' link='%s' ifindex='%d' address='%s': %+v", link.Name, link.Ifindex, address, err)
+	}
+	delete(m.RoutingRulesByAddressTo, address)
+}
+
+func WatchNetwork(m *Environment) {
+	go WatchAddresses(m)
+	go WatchLinks(m)
 }
 
 func SaveMetaData(m *Environment) error {
