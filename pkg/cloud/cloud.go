@@ -20,6 +20,15 @@ const (
 
 	// GCP Google Cloud Platform cloud provider.
 	GCP string = "gcp"
+
+	// ALibaba Cloud Platform cloud provider.
+	Alibaba string = "alibaba"
+
+	// OracleGoogle Cloud Platform cloud provider.
+	Oracle string = "oracle"
+
+	// Digital Ocean Cloud Platform cloud provider.
+	DigitalOcean string = "digital ocean"
 )
 
 func DetectCloud() string {
@@ -29,6 +38,12 @@ func DetectCloud() string {
 		return AWS
 	} else if DetectGCP() {
 		return GCP
+	} else if DetectAlibaba() {
+		return Alibaba
+	} else if DetectOracle() {
+		return Oracle
+	} else if DetectDigitalOcean() {
+		return DigitalOcean
 	}
 
 	return ""
@@ -42,7 +57,6 @@ func DetectAzure() bool {
 	hasChassisAssetTag := strings.Contains(string(chassisAssetTag), "7783-7084-3265-9085-8269-3286-77")
 
 	return hasVendor || hasChassisAssetTag
-
 }
 
 func DetectEC2() bool {
@@ -58,4 +72,22 @@ func DetectGCP() bool {
 	productName, _ := ioutil.ReadFile("/sys/class/dmi/id/product_name")
 
 	return strings.Contains(string(productName), "Google Compute Engine")
+}
+
+func DetectAlibaba() bool {
+	productName, _ := ioutil.ReadFile("/sys/class/dmi/id/product_name")
+
+	return strings.Contains(string(productName), "Alibaba Cloud")
+}
+
+func DetectDigitalOcean() bool {
+	vendor, _ := ioutil.ReadFile("/sys/class/dmi/id/sys_vendor")
+
+	return strings.Contains(string(vendor), "DigitalOcean")
+}
+
+func DetectOracle() bool {
+	chassisAssetTag, _ := ioutil.ReadFile("/sys/class/dmi/id/chassis_asset_tag")
+
+	return strings.Contains(string(chassisAssetTag), "OracleCloud")
 }
