@@ -1,7 +1,7 @@
 #### cloud-network
 ----
 
-```cloud-network``` configures network in cloud environment. In cloud environment instances are set public IP and private IP. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured via DHCP. This project is adopting towards cloud network environment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign ip and routes. When `cloud-network` is installed, it automatically configures network interfaces in cloud frameworks. Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IPv4 addresses from the metadata server endpoint and configures them on the interface, if any.
+```cloud-network``` configures network in cloud environment. In cloud environment instances are set public IPs and private IPs. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured. This project is adopting towards cloud network environment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign IPs and routes. When `cloud-network` is installed, it automatically configures network interfaces in cloud frameworks. Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IP addresses from the metadata server endpoint and configures them on the interface, if any.
 
 A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance metadata is saved in per link basis in the directory `/run/cloud-network`.
 
@@ -108,7 +108,7 @@ May 31 22:54:50 zeus-final-2 systemd[1]: Started Configures network in cloud env
     Cloud provider: aws
              AmiID: ami-005f15863xxxxxxxx
           Location: 0
-BlockDeviceMapping: {Ami:xvda Root:/dev/xvda}
+BlockDeviceMapping: Ami:xvda Root:/dev/xvda
           Hostname: Zeus.us-west-2.compute.internal
     PublicHostname: Zeuspublic.us-west-2.compute.amazonaws.com
      LocalHostname: Zeus.us-west-2.compute.internal
@@ -116,7 +116,7 @@ BlockDeviceMapping: {Ami:xvda Root:/dev/xvda}
         InstanceID: i-0c8c1test
  InstanceLifeCycle: on-demand
       InstanceType: t4g.micro
-         Placement: {AvailabilityZone:us-west-2d AvailabilityZoneID:usw2-az4 Region:us-west-2}
+         Placement: AvailabilityZone:us-west-2d AvailabilityZoneID:usw2-az4 Region:us-west-2
            Profile: default-hvm
        Mac Address: 0e:c5:3f:c5:33:a5
          LocalIpv4: 192.31.63.114

@@ -11,6 +11,12 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+type Route struct {
+	Table   int
+	IfIndex int
+	Gw      string
+}
+
 func GetDefaultIpv4Gateway() (string, error) {
 	routes, err := netlink.RouteList(nil, syscall.AF_INET)
 	if err != nil {
@@ -64,16 +70,28 @@ func GetIpv4GatewayByLink(ifIndex int) (string, error) {
 	return "", errors.New("not found")
 }
 
-func AddRoute(ifIndex int, table int, gateway string) error {
-	gw := net.ParseIP(gateway).To4()
-
+func AddRoute(route *Route) error {
 	rt := netlink.Route{
-		LinkIndex: ifIndex,
-		Gw:        gw,
-		Table:     table,
+		LinkIndex: route.IfIndex,
+		Gw:        net.ParseIP(route.Gw).To4(),
+		Table:     route.Table,
 	}
 
 	if err := netlink.RouteAdd(&rt); err != nil && err.Error() != "file exists" {
+		return err
+	}
+
+	return nil
+}
+
+func RemoveRoute(route *Route) error {
+	rt := netlink.Route{
+		LinkIndex: route.IfIndex,
+		Gw:        net.ParseIP(route.Gw).To4(),
+		Table:     route.Table,
+	}
+
+	if err := netlink.RouteDel(&rt); err != nil {
 		return err
 	}
 

@@ -28,8 +28,13 @@ func ConfigureByIndex(ifIndex int) error {
 				return err
 			}
 
-			err = AddRoute(link.Attrs().Index, ROUTE_TABLE_BASE+link.Attrs().Index, gw)
-			if err != nil {
+			rt := Route{
+				IfIndex: link.Attrs().Index,
+				Gw:      gw,
+				Table:   ROUTE_TABLE_BASE + link.Attrs().Index + link.Attrs().Index,
+			}
+
+			if err = AddRoute(&rt); err != nil {
 				return err
 			}
 

@@ -12,15 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-resty/resty/v2"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/parser"
 	"github.com/cloud-network-setup/pkg/provider"
+	"github.com/go-resty/resty/v2"
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 )
 
 func fetchCloudMetadata(url string) ([]byte, error) {
@@ -56,7 +55,7 @@ func displayAzureCloudNetworkMetadata(links *network.Links, n *provider.AzureMet
 		fmt.Printf("MAC Address: %+v \n", strings.ToLower(parser.ParseMAC(n.Network.Interface[i].MacAddress)))
 		fmt.Printf("  Public Ip: %+v \n", publicIp)
 		fmt.Printf(" Private Ip: %+v \n", privateIp)
-		fmt.Printf("     Subnet: %+v \n", subnet.Address)
+		fmt.Printf("     Subnet: %+v \n\n", subnet.Address)
 	}
 
 	return nil
