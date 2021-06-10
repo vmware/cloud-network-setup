@@ -213,6 +213,9 @@ func (m *Environment) isRulesByTableEmpty(table int) bool {
 }
 
 func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link) error {
+
+	log.Debugf("Removing routing policy rules for address='%s' link='%s'", address, link.Name)
+
 	rule, ok := m.RoutingRulesByAddressFrom[address]
 	if ok {
 		err := network.RemoveRoutingPolicyRule(rule)

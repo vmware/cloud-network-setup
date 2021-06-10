@@ -100,6 +100,7 @@ func ConfigureNetworkMetadata(m *Environment) error {
 		return errors.New("unknown cloud environment")
 	}
 }
+
 func SaveMetaData(m *Environment) error {
 	switch m.Kind {
 	case cloud.Azure:
