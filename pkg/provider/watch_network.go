@@ -20,7 +20,7 @@ func WatchNetwork(m *Environment) {
 	go WatchLinks(m)
 }
 
-func WatchAddresses(m *Environment) error {
+func WatchAddresses(m *Environment) {
 	updates := make(chan netlink.AddrUpdate)
 	done := make(chan struct{}, MaxChannelSize)
 
@@ -30,39 +30,39 @@ func WatchAddresses(m *Environment) error {
 		},
 	}); err != nil {
 		log.Errorf("Failed to subscribe address update: %v", err)
-		return err
+		return
 	}
 
-	select {
-	case <-done:
-		log.Info("Address watcher failed")
-	case updates, ok := <-updates:
-		if !ok {
-			break
-		}
+	for {
+		select {
+		case <-done:
+			log.Info("Address watcher failed")
+		case updates, ok := <-updates:
+			if !ok {
+				break
+			}
 
-		a := updates.LinkAddress.IP.String()
-		mask, _ := updates.LinkAddress.Mask.Size()
+			a := updates.LinkAddress.IP.String()
+			mask, _ := updates.LinkAddress.Mask.Size()
 
-		ip := a + "/" + strconv.Itoa(mask)
+			ip := a + "/" + strconv.Itoa(mask)
 
-		log.Infof("Received address update: %v", updates)
+			log.Infof("Received address update: %v", updates)
 
-		if updates.NewAddr {
-			log.Infof("Address='%s' added to link ifindex='%d'", ip, updates.LinkIndex)
-		} else {
-			log.Infof("Address='%s' removed from link ifindex='%d'", ip, updates.LinkIndex)
+			if updates.NewAddr {
+				log.Infof("Address='%s' added to link ifindex='%d'", ip, updates.LinkIndex)
+			} else {
+				log.Infof("Address='%s' removed from link ifindex='%d'", ip, updates.LinkIndex)
 
-			log.Debugf("Dropping configuration link ifindex='%d' address='%s'", updates.LinkIndex, ip)
+				log.Debugf("Dropping configuration link ifindex='%d' address='%s'", updates.LinkIndex, ip)
 
-			m.dropConfiguration(updates.LinkIndex, ip)
+				m.dropConfiguration(updates.LinkIndex, ip)
+			}
 		}
 	}
-
-	return nil
 }
 
-func WatchLinks(m *Environment) error {
+func WatchLinks(m *Environment) {
 	updates := make(chan netlink.LinkUpdate)
 	done := make(chan struct{}, MaxChannelSize)
 
@@ -72,30 +72,30 @@ func WatchLinks(m *Environment) error {
 		},
 	}); err != nil {
 		log.Errorf("Failed to subscribe link update: %v", err)
-		return err
+		return
 	}
 
-	select {
-	case <-done:
-		log.Info("Link watcher failed")
-	case updates, ok := <-updates:
-		if !ok {
-			break
+	for {
+		select {
+		case <-done:
+			log.Info("Link watcher failed")
+		case updates, ok := <-updates:
+			if !ok {
+				break
+			}
+
+			log.Infof("Received Link update: %v", updates)
+
+			link := network.Link{
+				Ifindex:   updates.Link.Attrs().Index,
+				Mac:       updates.Link.Attrs().HardwareAddr.String(),
+				MTU:       updates.Attrs().MTU,
+				OperState: updates.Attrs().OperState.String(),
+			}
+
+			m.updateLink(&link)
 		}
-
-		log.Infof("Received Link update: %v", updates)
-
-		link := network.Link{
-			Ifindex:   updates.Link.Attrs().Index,
-			Mac:       updates.Link.Attrs().HardwareAddr.String(),
-			MTU:       updates.Attrs().MTU,
-			OperState: updates.Attrs().OperState.String(),
-		}
-
-		m.updateLink(&link)
 	}
-
-	return nil
 }
 
 func (m *Environment) updateLink(link *network.Link) {

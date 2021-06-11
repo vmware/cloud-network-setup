@@ -7,12 +7,17 @@ A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance me
 
 Interface configurations is checked periodically, and in case the configuration in the cloud framework changed, the interface will be reconfigured accordingly.
 
+See
+
+1. [Azure Instance Metadata Service ](https://docs.microsoft.com/en-us/azure/virtual-machines/windows/instance-metadata-service?tabs=linux)
+2. [EC2 Instance Metadata and user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html)
+3. [GCP Instance Metadata](https://cloud.google.com/compute/docs/storing-retrieving-metadata)
 
  #### Use cases
 ----
 
  * How can I make my secondary network interface work in cloud instance ?
- 
+
     This functionality is scattered across different scripts/tools that are cloud provider dependent. `cloud-network` provides a cloud agnostic mechanism to retrieve metadata like network parameters and configure the interfaces. That means no more manual editing the configuration and change it if configuration changes. `cloud-network` automatically configures the interfaces since it has the metadata information.
 
 #### Building from source
@@ -69,7 +74,7 @@ rules for each Ip address including primary address. Defaults to unset.
 Note that when there are multiple interfaces, the secondary interface becomes unreachable. When `Supplementary=` is set, the default route and routing policy
 rules are automatically configured.
 
- ```bash                                                                                                                                                                  
+ ```bash
 > cat /etc/cloud-network/cloud-network.toml
 [System]
 RefreshTimer="300s"
