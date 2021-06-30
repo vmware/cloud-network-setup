@@ -1,7 +1,7 @@
 #### cloud-network
 ----
 
-```cloud-network``` configures network in cloud environment. In cloud environment instances are set public IPs and private IPs. If more than one private IP is configured then except the IP which is provided by DHCP others can't be fetched and configured. This project is adopting towards cloud network environment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint, parses and then assign IPs and routes. When `cloud-network` is installed, it automatically configures network interfaces in cloud frameworks. Via netlink it detects which interfaces are available. Additionally, for all interfaces including the primary one, it looks up secondary IP addresses from the metadata server endpoint and configures them on the interface, if any.
+```cloud-network``` configures network in cloud environment. In cloud environment instances are set public IPs and private IPs. If more than one private Ip is configured then except the Ip which is provided by DHCP server others can't be fetched and configured. This project is adopting towards cloud network environment such as Azure, GCP, Amazon EC2. It fetches the metadata from the metadata server endpoint server, parses and then assign IPs and routes. When `cloud-network` is installed, it automatically configures network interfaces in cloud frameworks. Via netlink it detects which interfaces are available,  for all interfaces including the primary one, it looks up secondary IP addresses from the metadata and configures them on the interface.
 
 A local RESTful JSON server runs on address `127.0.0.1:5209` and the instance metadata is saved in per link basis in the directory `/run/cloud-network`.
 
@@ -68,11 +68,9 @@ Specifies the IP port which the local REST API server will listen. Defaults to `
 
 `Supplementary=`
 
-A whitespace-separated list of matching the device name. Specifies the interfaces which will be configured a default gateway and routing policy
-rules for each Ip address including primary address. Defaults to unset.
+A whitespace-separated list of interfaces matching the device name. Specifies the interfaces you want to configure with a default gateway and routing policy rules for each IP address including the primary IP address. No default value is set for this key.
 
-Note that when there are multiple interfaces, the secondary interface becomes unreachable. When `Supplementary=` is set, the default route and routing policy
-rules are automatically configured.
+Note that when there are multiple interfaces, the secondary interface becomes unreachable. When `Supplementary=` is set, the default route and routing policy rules are automatically configured.
 
  ```bash
 > cat /etc/cloud-network/cloud-network.toml
