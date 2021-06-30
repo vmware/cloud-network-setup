@@ -10,30 +10,16 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/parser"
 	"github.com/cloud-network-setup/pkg/provider"
-	"github.com/go-resty/resty/v2"
+	"github.com/cloud-network-setup/pkg/web"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
-
-func fetchCloudMetadata(url string) ([]byte, error) {
-	client := resty.New()
-	client.SetTimeout(time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond)
-
-	resp, err := client.R().Get(url)
-	if resp.StatusCode() != 200 {
-		fmt.Printf("Failed to fetch metadata: '%v'", resp.Error())
-		return nil, err
-	}
-
-	return resp.Body(), nil
-}
 
 func displayAzureCloudNetworkMetadata(links *network.Links, n *provider.AzureMetaData) error {
 	for i := 0; i < len(n.Network.Interface); i++ {
@@ -130,7 +116,7 @@ func displayGCPCloudNetworkMetadata(links *network.Links, g *provider.GCPMetaDat
 }
 
 func fetchCloudNetworkMetadata(ip string, port string) error {
-	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/network")
+	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/network")
 	if err != nil {
 		fmt.Printf("Failed to fetch instance metadata: '%+v'", err)
 		return err
@@ -293,7 +279,7 @@ func displayGCPCloudProjectMetadata(g *provider.GCPMetaData) {
 }
 
 func fetchCloudSystemMetadata(ip string, port string) {
-	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/system")
+	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/system")
 	if err != nil {
 		return
 	}
@@ -355,7 +341,7 @@ func displayGCPCloudSSHKeysFromMetadata(g *provider.GCPMetaData) {
 }
 
 func fetchSSHKeysFromCloudMetadata(ip string, port string) {
-	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/system")
+	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/system")
 	if err != nil {
 		return
 	}
@@ -367,7 +353,7 @@ func fetchSSHKeysFromCloudMetadata(ip string, port string) {
 
 		displayAzureCloudSSHKeysFromMetadata(&f)
 	case cloud.AWS:
-		c, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/credentials")
+		c, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/credentials")
 		if err != nil {
 			return
 		}
@@ -385,7 +371,7 @@ func fetchSSHKeysFromCloudMetadata(ip string, port string) {
 }
 
 func fetchGCPCloudProjectMetadata(ip string, port string) {
-	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/system")
+	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/system")
 	if err != nil {
 		return
 	}
@@ -412,7 +398,7 @@ func displayIdentityCredentialsFromMetadata(c *provider.EC2Credentials) {
 }
 
 func fetchIdentityCredentialsFromCloudMetadata(ip string, port string) {
-	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/credentials")
+	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/credentials")
 	if err != nil {
 		return
 	}
@@ -456,7 +442,7 @@ func displayDynamicInstanceIdentityDocument(c *provider.EC2Document) {
 }
 
 func fetchDynamicInstanceIdentityFromCloudMetadata(s string, ip string, port string) {
-	resp, err := fetchCloudMetadata("http://" + ip + ":" + port + "/api/cloud/dynamicinstanceidentity/" + s)
+	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/dynamicinstanceidentity/" + s)
 	if err != nil {
 		return
 	}

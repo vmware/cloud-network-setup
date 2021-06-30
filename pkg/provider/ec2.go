@@ -16,24 +16,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-resty/resty/v2"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
 	// EC2 Metadata endpoint.
 	EC2Endpoint string = "169.254.169.254"
 
-	//EC2 Metadata URL Base
+	// EC2 Metadata URL Base
 	EC2MetaDataURLBase string = "/latest/meta-data/"
 
-	//EC2 Metadata mac URL Base
+	// EC2 Metadata mac URL Base
 	EC2MetaDataNetwork string = "network/interfaces/macs/"
 
 	EC2MetaDataIdentityCredentials     string = "identity-credentials/ec2/security-credentials/ec2-instance/"
@@ -231,45 +229,33 @@ func fetchMACAddresses(url string) ([]string, error) {
 	return strings.Fields(strings.TrimRight(s, "/")), nil
 }
 
-func fetchMetadata(url string) ([]byte, error) {
-	client := resty.New()
-	client.SetTimeout(time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond)
-
-	resp, err := client.R().Get(url)
-	if err != nil && resp.StatusCode() != 200 {
-		return nil, err
-	}
-
-	return resp.Body(), nil
-}
-
 func (ec2 *EC2) FetchCloudMetadata() error {
 	macs, err := fetchMACAddresses("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataNetwork)
 	if err != nil {
 		return err
 	}
 
-	c, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials)
+	c, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials)
 	if err != nil {
 		return err
 	}
 
-	doc, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "document")
+	doc, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "document")
 	if err != nil {
 		return err
 	}
 
-	pkcs7, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "pkcs7")
+	pkcs7, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "pkcs7")
 	if err != nil {
 		return err
 	}
 
-	signature, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "signature")
+	signature, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "signature")
 	if err != nil {
 		return err
 	}
 
-	rsa2048, err := fetchMetadata("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "rsa2048")
+	rsa2048, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "rsa2048")
 	if err != nil {
 		return err
 	}

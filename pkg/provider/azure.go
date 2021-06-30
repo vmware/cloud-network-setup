@@ -5,30 +5,29 @@ package provider
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
 
-	"github.com/go-resty/resty/v2"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/parser"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	// AzureIMDSRESTEndpoint Metadata endpoint.
+	// Azure IMDS REST Endpoint.
 	AzureIMDSRESTEndpoint string = "169.254.169.254"
 
 	// AzureAPIVersion API version
 	AzureAPIVersion string = "?api-version=2020-09-01"
 
-	//AzureMetadtaURLBase URL base
-	AzureMetadtaURLBase string = "/metadata/instance"
+	//Azure Metadata URL base
+	AzureMetadataURLBase string = "/metadata/instance"
 )
 
 // Azure compute metadata
@@ -142,15 +141,28 @@ func NewAzure() *Azure {
 }
 
 func (az *Azure) FetchCloudMetadata() error {
-	client := resty.New()
-	client.SetHeader("Metadata", "True")
+	client, err := http.NewRequest("GET", "http://"+AzureIMDSRESTEndpoint+AzureMetadataURLBase+AzureAPIVersion, nil)
+	if err != nil {
+		return err
+	}
+	client.Header.Set("Metadata", "True")
 
-	resp, err := client.R().Get("http://" + AzureIMDSRESTEndpoint + AzureMetadtaURLBase + AzureAPIVersion)
-	if err != nil && resp.StatusCode() != 200 {
+	resp, err := http.DefaultClient.Do(client)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
 		return err
 	}
 
-	if err = json.Unmarshal(resp.Body(), &az.meta); err != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if err = json.Unmarshal(body, &az.meta); err != nil {
 		return err
 	}
 
@@ -168,7 +180,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 		subnet := az.meta.Network.Interface[i].Ipv4.Subnet[0]
 		_, err := strconv.ParseInt(subnet.Prefix, 10, 32)
 		if err != nil {
-			log.Errorf("Failed to parse address prefix=%+v': %+v", subnet.Prefix, err)
+			log.Errorf("Failed to parse address prefix='%s': %+v", subnet.Prefix, err)
 			continue
 		}
 

@@ -6,19 +6,17 @@ package provider
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"path"
 	"strconv"
-	"time"
-
-	"github.com/go-resty/resty/v2"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -122,16 +120,31 @@ func NewGCP() *GCP {
 }
 
 func (g *GCP) FetchCloudMetadata() error {
-	client := resty.New()
-	client.SetTimeout(time.Duration(conf.DefaultHttpRequestTimeout) * time.Millisecond)
-	client.SetHeader("Metadata-Flavor", "Google")
+	client, err := http.NewRequest("GET", "http://"+GCPIMDSRESTEndpoint+GCPMetadataURLBase, nil)
+	if err != nil {
+		return err
+	}
+	client.Header.Set("Metadata-Flavor", "Google")
 
-	resp, err := client.R().Get("http://" + GCPIMDSRESTEndpoint + GCPMetadataURLBase)
-	if err != nil && resp.StatusCode() != 200 {
+	resp, err := http.DefaultClient.Do(client)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
 		return err
 	}
 
-	json.Unmarshal(resp.Body(), &g.meta)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if err = json.Unmarshal(body, &g.meta); err != nil {
+		return err
+	}
+
 	return nil
 }
 
