@@ -70,7 +70,7 @@ func GetIpv4GatewayByLink(ifIndex int) (string, error) {
 	return "", errors.New("not found")
 }
 
-func AddRoute(route *Route) error {
+func RouteAdd(route *Route) error {
 	rt := netlink.Route{
 		LinkIndex: route.IfIndex,
 		Gw:        net.ParseIP(route.Gw).To4(),
@@ -84,7 +84,7 @@ func AddRoute(route *Route) error {
 	return nil
 }
 
-func RemoveRoute(route *Route) error {
+func RouteRemove(route *Route) error {
 	rt := netlink.Route{
 		LinkIndex: route.IfIndex,
 		Gw:        net.ParseIP(route.Gw).To4(),

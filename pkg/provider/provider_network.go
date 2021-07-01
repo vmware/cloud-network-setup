@@ -33,7 +33,7 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 		for i := range earlierAddresses {
 			ok := newAddresses[i]
 			if !ok {
-				if err := network.RemoveIPAddress(link.Name, i); err != nil {
+				if err := network.AddressRemove(link.Name, i); err != nil {
 					log.Errorf("Failed to remove address='%s' from link='%s': '%+v'", i, link.Name, link.Ifindex, err)
 				} else {
 					log.Infof("Successfully removed address='%s on link='%s' ifindex='%d'", i, link.Name, link.Ifindex)
@@ -49,7 +49,7 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 		if !ok {
 
 			if link.OperState == "down" {
-				if err := network.SetLinkOperStateUp(link.Ifindex); err != nil {
+				if err := network.LinkSetOperStateUp(link.Ifindex); err != nil {
 					log.Errorf("Failed to bring up the link='%s' ifindex='%d': %+v", link.Name, link.Ifindex, err)
 					return err
 				}
@@ -67,14 +67,14 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 			}
 
 			if mtu != 0 && link.MTU != mtu {
-				if err := network.SetLinkMtu(link.Ifindex, mtu); err != nil {
+				if err := network.LinkSetMtu(link.Ifindex, mtu); err != nil {
 					log.Warningf("Failed to set MTU link='%s' ifindex='%d': %+v", err)
 				} else {
 					log.Infof("Successfully MTU set to '%d' link='%s' ifindex='%d'", mtu, link.Name, link.Ifindex)
 				}
 			}
 
-			if err := network.SetAddress(link.Name, i); err != nil {
+			if err := network.AddressSet(link.Name, i); err != nil {
 				log.Errorf("Failed to add address='%s' to link='%s' ifindex='%d': %+v", i, link.Name, link.Ifindex, err)
 				continue
 			}
@@ -140,7 +140,7 @@ func (m *Environment) configureRoute(link *network.Link) error {
 		Table:   m.RouteTable + link.Ifindex,
 	}
 
-	if err := network.AddRoute(&rt); err != nil {
+	if err := network.RouteAdd(&rt); err != nil {
 		log.Errorf("Failed to add default gateway='%s' for link='%+d' ifindex='%d' table='%d': %+v", gw, link.Name, link.Ifindex, m.RouteTable+link.Ifindex, err)
 		return err
 	}
@@ -158,12 +158,12 @@ func (m *Environment) configureRoutingPolicyRule(link *network.Link, address str
 	s := strings.SplitAfter(address, "/")
 	addr := strings.TrimSuffix(s[0], "/")
 
-	from := &network.IPRoutingRule{
+	from := &network.RoutingPolicyRule{
 		From:  addr,
 		Table: m.RouteTable + link.Ifindex,
 	}
 
-	err := network.AddRoutingPolicyRule(from)
+	err := network.RoutingPolicyRuleAdd(from)
 	if err != nil {
 		log.Errorf("Failed to add routing policy rule 'from' for link='%s' ifindex='%d' table='%d': %+v", link.Name, link.Ifindex, from.Table, err)
 		return err
@@ -172,12 +172,12 @@ func (m *Environment) configureRoutingPolicyRule(link *network.Link, address str
 	}
 	m.RoutingRulesByAddressFrom[address] = from
 
-	to := &network.IPRoutingRule{
+	to := &network.RoutingPolicyRule{
 		To:    addr,
 		Table: m.RouteTable + link.Ifindex,
 	}
 
-	err = network.AddRoutingPolicyRule(to)
+	err = network.RoutingPolicyRuleAdd(to)
 	if err != nil {
 		log.Errorf("Failed to add routing policy rule 'to' for link='%s' ifindex='%d' table='%d': '%+v'", link.Name, link.Ifindex, to.Table, err)
 		return err
@@ -218,7 +218,7 @@ func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link
 
 	rule, ok := m.RoutingRulesByAddressFrom[address]
 	if ok {
-		err := network.RemoveRoutingPolicyRule(rule)
+		err := network.RoutingPolicyRuleRemove(rule)
 		if err != nil {
 			log.Errorf("Failed to add routing policy rule for link='%s' ifindex='%d' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
 		} else {
@@ -229,7 +229,7 @@ func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link
 
 	rule, ok = m.RoutingRulesByAddressTo[address]
 	if ok {
-		err := network.RemoveRoutingPolicyRule(rule)
+		err := network.RoutingPolicyRuleRemove(rule)
 		if err != nil {
 			log.Errorf("Failed to add routing policy rule for link='%s' ifindex='%d' table='%d': '%+v'", link.Name, link.Ifindex, rule.Table, err)
 		}
@@ -245,7 +245,7 @@ func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link
 
 			log.Debugf("Dropping GW='%s' link='%s' ifindex='%d'  Table='%d'", rt.Gw, link.Name, link.Ifindex, rt.Table)
 
-			network.RemoveRoute(rt)
+			network.RouteRemove(rt)
 			delete(m.RoutesByIndex, link.Ifindex)
 		}
 	}

@@ -34,7 +34,7 @@ func ConfigureByIndex(ifIndex int) error {
 				Table:   ROUTE_TABLE_BASE + link.Attrs().Index + link.Attrs().Index,
 			}
 
-			if err = AddRoute(&rt); err != nil {
+			if err = RouteAdd(&rt); err != nil {
 				return err
 			}
 
@@ -46,21 +46,21 @@ func ConfigureByIndex(ifIndex int) error {
 			for addr := range addresses {
 				a := strings.TrimSuffix(strings.SplitAfter(addr, "/")[0], "/")
 
-				from := &IPRoutingRule{
+				from := &RoutingPolicyRule{
 					From:  a,
 					Table: ROUTE_TABLE_BASE + link.Attrs().Index,
 				}
 
-				if err := AddRoutingPolicyRule(from); err != nil {
+				if err := RoutingPolicyRuleAdd(from); err != nil {
 					return err
 				}
 
-				to := &IPRoutingRule{
+				to := &RoutingPolicyRule{
 					To:    a,
 					Table: ROUTE_TABLE_BASE + link.Attrs().Index,
 				}
 
-				if err := AddRoutingPolicyRule(to); err != nil {
+				if err := RoutingPolicyRuleAdd(to); err != nil {
 					return err
 				}
 			}

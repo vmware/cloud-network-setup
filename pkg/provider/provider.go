@@ -24,8 +24,8 @@ type Environment struct {
 	RouteTable                int
 	AddressesByMAC            map[string]map[string]bool
 	RoutesByIndex             map[int]*network.Route
-	RoutingRulesByAddressFrom map[string]*network.IPRoutingRule
-	RoutingRulesByAddressTo   map[string]*network.IPRoutingRule
+	RoutingRulesByAddressFrom map[string]*network.RoutingPolicyRule
+	RoutingRulesByAddressTo   map[string]*network.RoutingPolicyRule
 
 	Mutex *sync.Mutex
 }
@@ -36,8 +36,8 @@ func New(provider string) *Environment {
 		RouteTable:                network.ROUTE_TABLE_BASE,
 		AddressesByMAC:            make(map[string]map[string]bool),
 		RoutesByIndex:             make(map[int]*network.Route),
-		RoutingRulesByAddressFrom: make(map[string]*network.IPRoutingRule),
-		RoutingRulesByAddressTo:   make(map[string]*network.IPRoutingRule),
+		RoutingRulesByAddressFrom: make(map[string]*network.RoutingPolicyRule),
+		RoutingRulesByAddressTo:   make(map[string]*network.RoutingPolicyRule),
 		Mutex:                     &sync.Mutex{},
 	}
 

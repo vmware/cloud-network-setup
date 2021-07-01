@@ -65,7 +65,7 @@ func GetLinkMacByIndex(links *Links, ifIndex int) (string, error) {
 	return "", errors.New("not found")
 }
 
-func SetLinkOperStateUp(ifIndex int) error {
+func LinkSetOperStateUp(ifIndex int) error {
 	links, err := netlink.LinkList()
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func SetLinkOperStateUp(ifIndex int) error {
 	return nil
 }
 
-func SetLinkMtu(ifIndex int, mtu int) error {
+func LinkSetMtu(ifIndex int, mtu int) error {
 	links, err := netlink.LinkList()
 	if err != nil {
 		return err

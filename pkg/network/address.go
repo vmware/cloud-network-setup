@@ -7,7 +7,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func AddAddress(ifIndex int, address string) error {
+func AddressAddress(ifIndex int, address string) error {
 	link, err := netlink.LinkByIndex(ifIndex)
 	if err != nil {
 		return err
@@ -25,7 +25,7 @@ func AddAddress(ifIndex int, address string) error {
 	return nil
 }
 
-func SetAddress(name string, address string) error {
+func AddressSet(name string, address string) error {
 	link, err := netlink.LinkByName(name)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func GetIPv4Addresses(ifName string) (map[string]bool, error) {
 	return m, nil
 }
 
-func RemoveIPAddress(ifName string, address string) error {
+func AddressRemove(ifName string, address string) error {
 	link, err := netlink.LinkByName(ifName)
 	if err != nil {
 		return err
