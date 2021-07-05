@@ -116,7 +116,7 @@ func displayGCPCloudNetworkMetadata(links *network.Links, g *provider.GCPMetaDat
 }
 
 func fetchCloudNetworkMetadata(ip string, port string) error {
-	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/network")
+	resp, err := web.Fetch("http://"+ip+":"+port+"/api/cloud/network", nil)
 	if err != nil {
 		fmt.Printf("Failed to fetch instance metadata: '%+v'", err)
 		return err
@@ -279,7 +279,7 @@ func displayGCPCloudProjectMetadata(g *provider.GCPMetaData) {
 }
 
 func fetchCloudSystemMetadata(ip string, port string) {
-	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/system")
+	resp, err := web.Fetch("http://"+ip+":"+port+"/api/cloud/system", nil)
 	if err != nil {
 		return
 	}
@@ -341,7 +341,7 @@ func displayGCPCloudSSHKeysFromMetadata(g *provider.GCPMetaData) {
 }
 
 func fetchSSHKeysFromCloudMetadata(ip string, port string) {
-	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/system")
+	resp, err := web.Fetch("http://"+ip+":"+port+"/api/cloud/system", nil)
 	if err != nil {
 		return
 	}
@@ -353,7 +353,7 @@ func fetchSSHKeysFromCloudMetadata(ip string, port string) {
 
 		displayAzureCloudSSHKeysFromMetadata(&f)
 	case cloud.AWS:
-		c, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/credentials")
+		c, err := web.Fetch("http://"+ip+":"+port+"/api/cloud/credentials", nil)
 		if err != nil {
 			return
 		}
@@ -371,7 +371,7 @@ func fetchSSHKeysFromCloudMetadata(ip string, port string) {
 }
 
 func fetchGCPCloudProjectMetadata(ip string, port string) {
-	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/system")
+	resp, err := web.Fetch("http://"+ip+":"+port+"/api/cloud/system", nil)
 	if err != nil {
 		return
 	}
@@ -398,7 +398,7 @@ func displayIdentityCredentialsFromMetadata(c *provider.EC2Credentials) {
 }
 
 func fetchIdentityCredentialsFromCloudMetadata(ip string, port string) {
-	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/credentials")
+	resp, err := web.Fetch("http://"+ip+":"+port+"/api/cloud/credentials", nil)
 	if err != nil {
 		return
 	}
@@ -442,7 +442,7 @@ func displayDynamicInstanceIdentityDocument(c *provider.EC2Document) {
 }
 
 func fetchDynamicInstanceIdentityFromCloudMetadata(s string, ip string, port string) {
-	resp, err := web.Fetch("http://" + ip + ":" + port + "/api/cloud/dynamicinstanceidentity/" + s)
+	resp, err := web.Fetch("http://"+ip+":"+port+"/api/cloud/dynamicinstanceidentity/"+s, nil)
 	if err != nil {
 		return
 	}

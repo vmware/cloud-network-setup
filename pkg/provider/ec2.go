@@ -235,27 +235,27 @@ func (ec2 *EC2) FetchCloudMetadata() error {
 		return err
 	}
 
-	c, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials)
+	c, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials, nil)
 	if err != nil {
 		return err
 	}
 
-	doc, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "document")
+	doc, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "document", nil)
 	if err != nil {
 		return err
 	}
 
-	pkcs7, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "pkcs7")
+	pkcs7, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "pkcs7", nil)
 	if err != nil {
 		return err
 	}
 
-	signature, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "signature")
+	signature, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "signature", nil)
 	if err != nil {
 		return err
 	}
 
-	rsa2048, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "rsa2048")
+	rsa2048, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "rsa2048", nil)
 	if err != nil {
 		return err
 	}
