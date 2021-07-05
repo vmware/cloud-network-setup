@@ -6,7 +6,6 @@ package provider
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"path"
@@ -120,23 +119,10 @@ func NewGCP() *GCP {
 }
 
 func (g *GCP) FetchCloudMetadata() error {
-	client, err := http.NewRequest("GET", "http://"+GCPIMDSRESTEndpoint+GCPMetadataURLBase, nil)
-	if err != nil {
-		return err
-	}
-	client.Header.Set("Metadata-Flavor", "Google")
+	headers := make(map[string]string)
+	headers["Metadata-Flavor"] = "Google"
 
-	resp, err := http.DefaultClient.Do(client)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := web.Fetch("http://"+GCPIMDSRESTEndpoint+GCPMetadataURLBase, headers)
 	if err != nil {
 		return err
 	}
