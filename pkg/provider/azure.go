@@ -5,7 +5,6 @@ package provider
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"path"
 	"strconv"
@@ -141,23 +140,10 @@ func NewAzure() *Azure {
 }
 
 func (az *Azure) FetchCloudMetadata() error {
-	client, err := http.NewRequest("GET", "http://"+AzureIMDSRESTEndpoint+AzureMetadataURLBase+AzureAPIVersion, nil)
-	if err != nil {
-		return err
-	}
-	client.Header.Set("Metadata", "True")
+	headers := make(map[string]string)
+	headers["Metadata"] = "True"
 
-	resp, err := http.DefaultClient.Do(client)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := web.Fetch("http://"+AzureIMDSRESTEndpoint+AzureMetadataURLBase+AzureAPIVersion, headers)
 	if err != nil {
 		return err
 	}
