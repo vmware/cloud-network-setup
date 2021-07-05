@@ -220,12 +220,12 @@ func displayEC2CloudSystemMetadata(c *provider.EC2System, provider string) {
 	fmt.Printf("                        Ami ID: %+v \n", c.AmiID)
 	fmt.Printf("                      Location: %+v \n", c.AmiLaunchIndex)
 	fmt.Printf("             Ami Manifest Path: %+v \n", c.AmiManifestPath)
-	fmt.Printf("          Block Device Mapping: %+v \n", c.BlockDeviceMapping)
+	fmt.Printf("      Block Device Mapping Ami: %+v Root: %+v\n", c.BlockDeviceMapping.Ami, c.BlockDeviceMapping.Root)
 	fmt.Printf("                     Host name: %+v \n", c.Hostname)
 	fmt.Printf("              Public Host name: %+v \n", c.PublicHostname)
 	fmt.Printf("               Local Host name: %+v \n", c.LocalHostname)
 	fmt.Printf("               Instance Action: %+v \n", c.InstanceAction)
-	fmt.Printf("                   Instance ID: %+v \n", c.InstanceID)
+	fmt.Printf("                   Instance Id: %+v \n", c.InstanceID)
 	fmt.Printf("           Instance Life Cycle: %+v \n", c.InstanceLifeCycle)
 	fmt.Printf("                  InstanceType: %+v \n", c.InstanceType)
 	fmt.Printf("   Placement Availability Zone: %+v \n", c.Placement.AvailabilityZone)
@@ -483,7 +483,7 @@ func main() {
 	log.SetOutput(ioutil.Discard)
 
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Printf("version=%s\n", c.App.Version)
+		fmt.Printf("Version=%s\n", c.App.Version)
 	}
 
 	app := &cli.App{
