@@ -8,10 +8,14 @@ import (
 	"net/http"
 )
 
-func Fetch(url string) ([]byte, error) {
+func Fetch(url string, headers map[string]string) ([]byte, error) {
 	client, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	for k, v := range headers {
+		client.Header.Set(k, v)
 	}
 
 	resp, err := http.DefaultClient.Do(client)
