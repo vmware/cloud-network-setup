@@ -47,7 +47,7 @@ func AcquireLinks() (Links, error) {
 
 		links[link.Attrs().HardwareAddr.String()] = l
 
-		log.Debugf("Acquired link='%+v' ifindex='%+v'", link.Attrs().Name, link.Attrs().Index)
+		log.Debugf("Acquired link='%' ifindex='%d'", link.Attrs().Name, link.Attrs().Index)
 	}
 
 	return Links{
@@ -66,35 +66,27 @@ func GetLinkMacByIndex(links *Links, ifIndex int) (string, error) {
 }
 
 func LinkSetOperStateUp(ifIndex int) error {
-	links, err := netlink.LinkList()
+	link, err := netlink.LinkByIndex(ifIndex)
 	if err != nil {
 		return err
 	}
 
-	for _, link := range links {
-		if link.Attrs().Index == ifIndex {
-			err := netlink.LinkSetUp(link)
-			if err != nil {
-				return err
-			}
-		}
+	err = netlink.LinkSetUp(link)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func LinkSetMtu(ifIndex int, mtu int) error {
-	links, err := netlink.LinkList()
+	link, err := netlink.LinkByIndex(ifIndex)
 	if err != nil {
 		return err
 	}
 
-	for _, link := range links {
-		if link.Attrs().Index == ifIndex {
-			if err := netlink.LinkSetMTU(link, mtu); err != nil {
-				return err
-			}
-		}
+	if err := netlink.LinkSetMTU(link, mtu); err != nil {
+		return err
 	}
 
 	return nil
