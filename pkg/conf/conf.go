@@ -40,7 +40,7 @@ type Config struct {
 	System  `mapstructure:"System"`
 }
 
-//Network IP Address and Port
+// Network IP Address and Port
 type Network struct {
 	Address string
 	Port    string
@@ -62,7 +62,7 @@ func SetLogLevel(level string) error {
 
 	l, err := logrus.ParseLevel(level)
 	if err != nil {
-		logrus.Warn("Failed to parse log level, fallback to 'info'")
+		logrus.Warn("Failed to parse log level, falling back to 'info'")
 		return errors.New("unsupported")
 	} else {
 		logrus.SetLevel(l)
@@ -88,7 +88,7 @@ func SetLogFormat(format string) error {
 		})
 
 	default:
-		logrus.Warn("Failed to parse log format, fallback to 'text'")
+		logrus.Warn("Failed to parse log format, falling back to 'text'")
 		return errors.New("unsupported")
 	}
 

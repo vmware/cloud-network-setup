@@ -6,4 +6,4 @@ LogFormat="text"
 [Network]
 Address="127.0.0.1"
 Port="5209"
-#Supplementary="ens3"
+#Supplementary="eth0 eth1"

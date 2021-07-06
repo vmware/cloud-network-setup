@@ -24,7 +24,7 @@ const (
 	// ALibaba Cloud Platform cloud provider.
 	Alibaba string = "alibaba"
 
-	// OracleGoogle Cloud Platform cloud provider.
+	// Oracle Cloud Platform cloud provider.
 	Oracle string = "oracle"
 
 	// Digital Ocean Cloud Platform cloud provider.

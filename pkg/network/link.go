@@ -14,7 +14,6 @@ type Links struct {
 	LinksByMAC map[string]Link
 }
 
-// Link Each interface info
 type Link struct {
 	Name      string
 	Ifindex   int
@@ -24,7 +23,6 @@ type Link struct {
 	Addresses *map[string]bool
 }
 
-// AcquireLinks Fetches link information
 func AcquireLinks() (Links, error) {
 	linkList, err := netlink.LinkList()
 	if err != nil {
