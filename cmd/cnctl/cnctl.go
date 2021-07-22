@@ -487,9 +487,9 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:     "cnctl",
-		Version:  "v0.1",
-		HelpName: "Introspects cloud network metadata",
+		Name:    "cnctl",
+		Version: "v0.1",
+		Usage:   "Introspects cloud network metadata",
 	}
 
 	app.EnableBashCompletion = true
