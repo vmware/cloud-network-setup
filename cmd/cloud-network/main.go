@@ -13,14 +13,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/okzk/sdnotify"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/system"
-	"github.com/gorilla/mux"
-	"github.com/okzk/sdnotify"
-	log "github.com/sirupsen/logrus"
 )
 
 func cloudNetworkBegin(m *provider.Environment) error {

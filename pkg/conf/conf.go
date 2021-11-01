@@ -7,9 +7,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cloud-network-setup/pkg/parser"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/cloud-network-setup/pkg/parser"
 )
 
 const (
@@ -45,7 +46,7 @@ type Network struct {
 	Address string
 	Port    string
 
-	Supplementary string
+	Supplementary  string
 	PrimaryAddress bool
 }
 

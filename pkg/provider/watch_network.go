@@ -6,9 +6,10 @@ package provider
 import (
 	"strconv"
 
-	"github.com/cloud-network-setup/pkg/network"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
+
+	"github.com/cloud-network-setup/pkg/network"
 )
 
 const (
