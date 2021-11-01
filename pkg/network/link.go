@@ -45,7 +45,7 @@ func AcquireLinks() (Links, error) {
 
 		links[link.Attrs().HardwareAddr.String()] = l
 
-		log.Debugf("Acquired link='%' ifindex='%d'", link.Attrs().Name, link.Attrs().Index)
+		log.Debugf("Acquired link='%s' ifindex='%d'", link.Attrs().Name, link.Attrs().Index)
 	}
 
 	return Links{
