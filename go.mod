@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/gorilla/mux v1.8.0
 	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.8.1
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
