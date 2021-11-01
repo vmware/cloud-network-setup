@@ -11,11 +11,12 @@ import (
 	"path"
 	"strconv"
 
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -122,7 +123,7 @@ func (g *GCP) FetchCloudMetadata() error {
 	headers := make(map[string]string)
 	headers["Metadata-Flavor"] = "Google"
 
-	body, err := web.Fetch("http://"+GCPIMDSRESTEndpoint+GCPMetadataURLBase, headers)
+	body, err := web.Dispatch("http://"+GCPIMDSRESTEndpoint+GCPMetadataURLBase, headers)
 	if err != nil {
 		return err
 	}

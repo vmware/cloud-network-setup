@@ -16,12 +16,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -235,27 +236,27 @@ func (ec2 *EC2) FetchCloudMetadata() error {
 		return err
 	}
 
-	c, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials, nil)
+	c, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials, nil)
 	if err != nil {
 		return err
 	}
 
-	doc, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "document", nil)
+	doc, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "document", nil)
 	if err != nil {
 		return err
 	}
 
-	pkcs7, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "pkcs7", nil)
+	pkcs7, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "pkcs7", nil)
 	if err != nil {
 		return err
 	}
 
-	signature, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "signature", nil)
+	signature, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "signature", nil)
 	if err != nil {
 		return err
 	}
 
-	rsa2048, err := web.Fetch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "rsa2048", nil)
+	rsa2048, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "rsa2048", nil)
 	if err != nil {
 		return err
 	}

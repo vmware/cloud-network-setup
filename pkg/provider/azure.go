@@ -10,12 +10,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/parser"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -143,7 +144,7 @@ func (az *Azure) FetchCloudMetadata() error {
 	headers := make(map[string]string)
 	headers["Metadata"] = "True"
 
-	body, err := web.Fetch("http://"+AzureIMDSRESTEndpoint+AzureMetadataURLBase+AzureAPIVersion, headers)
+	body, err := web.Dispatch("http://"+AzureIMDSRESTEndpoint+AzureMetadataURLBase+AzureAPIVersion, headers)
 	if err != nil {
 		return err
 	}
