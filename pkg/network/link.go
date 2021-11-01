@@ -43,9 +43,14 @@ func AcquireLinks() (Links, error) {
 			MTU:       link.Attrs().MTU,
 		}
 
-		links[link.Attrs().HardwareAddr.String()] = l
+		_, ok := links[link.Attrs().HardwareAddr.String()]
+		if !ok {
+			links[link.Attrs().HardwareAddr.String()] = l
+		} else {
+			continue
+		}
 
-		log.Debugf("Acquired link='%s' ifindex='%d'", link.Attrs().Name, link.Attrs().Index)
+		log.Debugf("Acquired link='%s' ifindex='%d' mac='%s'", link.Attrs().Name, link.Attrs().Index, link.Attrs().HardwareAddr.String())
 	}
 
 	return Links{
