@@ -4,36 +4,46 @@
 package parser
 
 import (
-	"errors"
 	"net"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
-func ParseIP(ip string) (net.IP, error) {
-	if len(ip) == 0 {
-		return nil, errors.New("invalid")
-	}
-
+func ParseIp(ip string) (net.IP, error) {
 	a := net.ParseIP(ip)
 
 	if a.To4() == nil || a.To16() == nil {
-		return nil, errors.New("invalid")
+		return nil, errors.New("invalid IP")
 	}
 
 	return a, nil
 }
 
 func ParsePort(port string) (uint16, error) {
-	if len(port) == 0 {
-		return 0, nil
-	}
-
 	p, err := strconv.ParseUint(port, 10, 16)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "invalid port")
 	}
 
 	return uint16(p), nil
+}
+
+func ParseIpPort(s string) (string, string, error) {
+	ip, port, err := net.SplitHostPort(s)
+	if err != nil {
+		return "", "", err
+	}
+
+	if _, err := ParseIp(ip); err != nil {
+		return "", "", errors.New("invalid IP")
+	}
+
+	if _, err := ParsePort(port); err != nil {
+		return "", "", errors.New("invalid port")
+	}
+
+	return ip, port, nil
 }
 
 // Splits MAC address without ':' or '-' into MAC address format by inserting ':'
