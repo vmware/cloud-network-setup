@@ -76,9 +76,8 @@ LogLevel="info"
 LogFormat="text"
 
 [Network]
-Address="127.0.0.1"
-Port="5209"
-Supplementary="ens3"
+Listen="127.0.0.1:5209"
+Supplementary="eth0"
 ```
 
 ```bash
@@ -127,7 +126,7 @@ Services Partition: aws
 
 ```bash
 ❯ cnctl status network
-            Name: ens33
+            Name: eth0
      MAC Address: 00:0c:29:5f:d1:39
        Public IP: 104.42.20.194
       Private IP: 10.0.0.4/24 10.0.0.6/24 10.0.0.7/24
