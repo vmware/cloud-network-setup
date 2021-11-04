@@ -4,6 +4,5 @@ LogLevel="info"
 LogFormat="text"
 
 [Network]
-Address="127.0.0.1"
-Port="5209"
+Listen="127.0.0.1:5209"
 #Supplementary="eth0 eth1"
