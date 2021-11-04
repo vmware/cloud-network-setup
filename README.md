@@ -58,13 +58,9 @@ Specifies the time interval, is the amount of time taken to retrieve the data fr
 
 The `[Network]` section takes following Keys:
 
-`Address=`
+`Listen=` 
 
-Specifies the IP address which the local REST API server will listen. Defaults to `127.0.0.1`.
-
-`Port=`
-
-Specifies the IP port which the local REST API server will listen. Defaults to `5209`.
+Specifies the IP address and the port in the format `ip:port`, on which the local REST API server will listen. Defaults to `127.0.0.1:5209`.
 
 `Supplementary=`
 
