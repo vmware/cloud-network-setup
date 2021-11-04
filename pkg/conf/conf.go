@@ -41,10 +41,8 @@ type Config struct {
 	System  `mapstructure:"System"`
 }
 
-// Network IP Address and Port
 type Network struct {
-	Address string
-	Port    string
+	Listen string
 
 	Supplementary  string
 	PrimaryAddress bool
@@ -105,7 +103,7 @@ func Parse() (*Config, error) {
 		logrus.Warning(err)
 	}
 
-	viper.SetDefault("Network.Address", DefaultAddress)
+	viper.SetDefault("Network.Listen", DefaultAddress+":"+DefaultPort)
 	viper.SetDefault("Network.Port", DefaultPort)
 	viper.SetDefault("System.LogFormat", DefaultLogLevel)
 	viper.SetDefault("System.LogLevel", DefaultLogFormat)
@@ -116,14 +114,9 @@ func Parse() (*Config, error) {
 		return nil, err
 	}
 
-	if _, err := parser.ParseIP(c.Network.Address); err != nil {
-		logrus.Warning(err)
-		c.Network.Address = DefaultAddress
-	}
-
-	if _, err := parser.ParsePort(c.Network.Port); err != nil {
-		logrus.Warning(err)
-		c.Network.Port = DefaultPort
+	if _, _, err := parser.ParseIpPort(c.Network.Listen); err != nil {
+		logrus.Errorf("Failed to parse Listen=%s", c.Network.Listen)
+		return nil, err
 	}
 
 	if _, err := time.ParseDuration(c.System.RefreshTimer); err != nil {
@@ -145,7 +138,7 @@ func Parse() (*Config, error) {
 		}
 	}
 
-	logrus.Debugf("Successfully parsed Address='%+v' and Port='%+v'", c.Network.Address, c.Network.Port)
+	logrus.Debugf("Successfully parsed Listen='%+v'", c.Network.Listen)
 
 	return &c, nil
 }

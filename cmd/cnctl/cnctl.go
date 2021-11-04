@@ -183,7 +183,7 @@ func displayAzureCloudSystemMetadata(c *provider.AzureMetaData, provider string)
 		fmt.Printf("          Publisher: %+v \n", c.Compute.Publisher)
 	}
 	if len(c.Compute.Version) > 0 {
-		fmt.Printf("             Version: %+v \n", c.Compute.Version)
+		fmt.Printf("            Version: %+v \n", c.Compute.Version)
 	}
 	if len(c.Compute.LicenseType) > 0 {
 		fmt.Printf("        License Type: %+v \n", c.Compute.LicenseType)
@@ -208,7 +208,7 @@ func displayAzureCloudSystemMetadata(c *provider.AzureMetaData, provider string)
 		fmt.Printf("   Plan Publisher: %+v \n", c.Compute.Plan.Publisher)
 	}
 	if len(c.Compute.Offer) > 0 {
-		fmt.Printf("            Offer: %+v \n", c.Compute.Offer)
+		fmt.Printf("              Offer: %+v \n", c.Compute.Offer)
 	}
 	if len(c.Compute.StorageProfile.DataDisks) > 0 {
 		fmt.Printf("      Storage Profile: %+v \n", c.Compute.StorageProfile.DataDisks)
@@ -483,6 +483,12 @@ func main() {
 	conf, _ := conf.Parse()
 	log.SetOutput(ioutil.Discard)
 
+	ip, port, err := parser.ParseIpPort(conf.Network.Listen)
+	if err != nil {
+		fmt.Printf("Failed to parse Listen=%v : %v", conf.Network.Listen, err)
+		os.Exit(1)
+	}
+
 	cli.VersionPrinter = func(c *cli.Context) {
 		fmt.Printf("Version=%s\n", c.App.Version)
 	}
@@ -504,7 +510,7 @@ func main() {
 					Name:  "system",
 					Usage: "Display cloud system metadata",
 					Action: func(c *cli.Context) error {
-						fetchCloudSystemMetadata(conf.Network.Address, conf.Network.Port)
+						fetchCloudSystemMetadata(ip, port)
 						return nil
 					},
 				},
@@ -512,7 +518,7 @@ func main() {
 					Name:  "network",
 					Usage: "Display cloud network metadata",
 					Action: func(c *cli.Context) error {
-						fetchCloudNetworkMetadata(conf.Network.Address, conf.Network.Port)
+						fetchCloudNetworkMetadata(ip, port)
 						return nil
 					},
 				},
@@ -527,7 +533,7 @@ func main() {
 					Aliases: []string{"k"},
 					Usage:   "Display SSH key",
 					Action: func(c *cli.Context) error {
-						fetchSSHKeysFromCloudMetadata(conf.Network.Address, conf.Network.Port)
+						fetchSSHKeysFromCloudMetadata(ip, port)
 						return nil
 					},
 				},
@@ -536,7 +542,7 @@ func main() {
 					Aliases: []string{"c"},
 					Usage:   "Display EC2 data identity credentials",
 					Action: func(c *cli.Context) error {
-						fetchIdentityCredentialsFromCloudMetadata(conf.Network.Address, conf.Network.Port)
+						fetchIdentityCredentialsFromCloudMetadata(ip, port)
 						return nil
 					},
 				},
@@ -545,7 +551,7 @@ func main() {
 					Aliases: []string{"d"},
 					Usage:   "Display EC2 data identity credentials document",
 					Action: func(c *cli.Context) error {
-						fetchDynamicInstanceIdentityFromCloudMetadata("document", conf.Network.Address, conf.Network.Port)
+						fetchDynamicInstanceIdentityFromCloudMetadata("document", ip, port)
 						return nil
 					},
 				},
@@ -554,7 +560,7 @@ func main() {
 					Aliases: []string{"p"},
 					Usage:   "Display EC2 data identity credentials pkcs7",
 					Action: func(c *cli.Context) error {
-						fetchDynamicInstanceIdentityFromCloudMetadata("pkcs7", conf.Network.Address, conf.Network.Port)
+						fetchDynamicInstanceIdentityFromCloudMetadata("pkcs7", ip, port)
 						return nil
 					},
 				},
@@ -563,7 +569,7 @@ func main() {
 					Aliases: []string{"s"},
 					Usage:   "Display EC2 data identity credentials signature",
 					Action: func(c *cli.Context) error {
-						fetchDynamicInstanceIdentityFromCloudMetadata("signature", conf.Network.Address, conf.Network.Port)
+						fetchDynamicInstanceIdentityFromCloudMetadata("signature", ip, port)
 						return nil
 					},
 				},
@@ -572,7 +578,7 @@ func main() {
 					Aliases: []string{"r"},
 					Usage:   "Display EC2 data identity credentials rsa2048",
 					Action: func(c *cli.Context) error {
-						fetchDynamicInstanceIdentityFromCloudMetadata("rsa2048", conf.Network.Address, conf.Network.Port)
+						fetchDynamicInstanceIdentityFromCloudMetadata("rsa2048", ip, port)
 						return nil
 					},
 				},
@@ -581,7 +587,7 @@ func main() {
 					Aliases: []string{"p"},
 					Usage:   "Display GCP project metadata",
 					Action: func(c *cli.Context) error {
-						fetchGCPCloudProjectMetadata(conf.Network.Address, conf.Network.Port)
+						fetchGCPCloudProjectMetadata(ip, port)
 						return nil
 					},
 				},

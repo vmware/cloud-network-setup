@@ -20,6 +20,7 @@ import (
 	"github.com/cloud-network-setup/pkg/cloud"
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
+	"github.com/cloud-network-setup/pkg/parser"
 	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/system"
 )
@@ -128,8 +129,10 @@ func main() {
 	apiRouter := r.PathPrefix("/api").Subrouter()
 	provider.RegisterRouterCloud(apiRouter, m)
 
+	ip, port, _ := parser.ParseIpPort(c.Network.Listen)
+
 	srv := http.Server{
-		Addr:    net.JoinHostPort(c.Address, c.Port),
+		Addr:    net.JoinHostPort(ip, port),
 		Handler: r,
 	}
 
@@ -154,6 +157,6 @@ func main() {
 		}
 	}()
 
-	log.Infof("Local Instance Metadata Cache Server listening at '%+v':'%+v'", c.Address, c.Port)
+	log.Infof("Local Instance Metadata Cache Server listening at '%+v':'%+v'", ip, port)
 	log.Info(srv.ListenAndServe())
 }
