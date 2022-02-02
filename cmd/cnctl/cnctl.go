@@ -18,8 +18,8 @@ import (
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/parser"
-	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/web"
+	"github.com/cloud-network-setup/provider"
 )
 
 func displayAzureCloudNetworkMetadata(links *network.Links, n *provider.AzureMetaData) error {

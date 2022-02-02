@@ -21,8 +21,8 @@ import (
 	"github.com/cloud-network-setup/pkg/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/parser"
-	"github.com/cloud-network-setup/pkg/provider"
 	"github.com/cloud-network-setup/pkg/system"
+	"github.com/cloud-network-setup/provider"
 )
 
 func cloudNetworkBegin(m *provider.Environment) error {
