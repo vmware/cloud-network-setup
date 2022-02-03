@@ -159,7 +159,7 @@ func (az *Azure) FetchCloudMetadata() error {
 func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, error) {
 	a := make(map[string]bool)
 
-	for i := 0; i < len(az.meta.Network.Interface); i++ {
+	for i := range az.meta.Network.Interface {
 		if strings.ToLower(parser.ParseMAC(az.meta.Network.Interface[i].MacAddress)) != mac {
 			continue
 		}
@@ -171,7 +171,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 			continue
 		}
 
-		for j := 0; j < len(az.meta.Network.Interface[i].Ipv4.IPAddress); j++ {
+		for j := range az.meta.Network.Interface[i].Ipv4.IPAddress {
 			privateIp := az.meta.Network.Interface[i].Ipv4.IPAddress[j].PrivateIpAddress + "/" + subnet.Prefix
 			a[privateIp] = true
 		}
@@ -182,7 +182,7 @@ func (az *Azure) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]boo
 }
 
 func (az *Azure) ConfigureNetworkFromCloudMeta(m *Environment) error {
-	for i := 0; i < len(az.meta.Network.Interface); i++ {
+	for i := range az.meta.Network.Interface {
 		mac := strings.ToLower(parser.ParseMAC(az.meta.Network.Interface[i].MacAddress))
 
 		l, ok := m.Links.LinksByMAC[mac]
@@ -212,7 +212,7 @@ func (az *Azure) SaveCloudMetadata() error {
 }
 
 func (az *Azure) LinkSaveCloudMetadata(m *Environment) error {
-	for i := 0; i < len(az.meta.Network.Interface); i++ {
+	for i := range az.meta.Network.Interface {
 		mac := strings.ToLower(parser.ParseMAC(az.meta.Network.Interface[i].MacAddress))
 		l, b := m.Links.LinksByMAC[mac]
 		if !b {

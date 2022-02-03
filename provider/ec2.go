@@ -236,27 +236,27 @@ func (ec2 *EC2) FetchCloudMetadata() error {
 		return err
 	}
 
-	c, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataURLBase + EC2MetaDataIdentityCredentials, nil)
+	c, err := web.Dispatch("http://"+EC2Endpoint+EC2MetaDataURLBase+EC2MetaDataIdentityCredentials, nil)
 	if err != nil {
 		return err
 	}
 
-	doc, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "document", nil)
+	doc, err := web.Dispatch("http://"+EC2Endpoint+EC2MetaDataDynamicIdentityDocument+"document", nil)
 	if err != nil {
 		return err
 	}
 
-	pkcs7, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "pkcs7", nil)
+	pkcs7, err := web.Dispatch("http://"+EC2Endpoint+EC2MetaDataDynamicIdentityDocument+"pkcs7", nil)
 	if err != nil {
 		return err
 	}
 
-	signature, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "signature", nil)
+	signature, err := web.Dispatch("http://"+EC2Endpoint+EC2MetaDataDynamicIdentityDocument+"signature", nil)
 	if err != nil {
 		return err
 	}
 
-	rsa2048, err := web.Dispatch("http://" + EC2Endpoint + EC2MetaDataDynamicIdentityDocument + "rsa2048", nil)
+	rsa2048, err := web.Dispatch("http://"+EC2Endpoint+EC2MetaDataDynamicIdentityDocument+"rsa2048", nil)
 	if err != nil {
 		return err
 	}
@@ -333,15 +333,13 @@ func (ec2 *EC2) ConfigureNetworkFromCloudMeta(m *Environment) error {
 			continue
 		}
 
-		err = m.configureNetwork(&link, newAddresses)
-		if err != nil {
+		if err = m.configureNetwork(&link, newAddresses); err != nil {
 			continue
 		}
 
 		// EC2's primary interface looses connectivity if the second interface gets configured.
 		// Hence add a default route for the primary interface too and rules for each address
-		err = network.ConfigureByIndex(2)
-		if err != nil {
+		if err := network.ConfigureByIndex(2); err != nil {
 			log.Errorf("Failed to configure network for link='%+v' ifindex='%+v': %+v", link.Name, link.Ifindex, err)
 		}
 	}

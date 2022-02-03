@@ -136,7 +136,7 @@ func (g *GCP) FetchCloudMetadata() error {
 }
 
 func (g *GCP) ParseIpv4GatewayFromMetadataByMac(mac string) (string, error) {
-	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+	for i := range g.meta.Instance.Networkinterfaces {
 		if mac == g.meta.Instance.Networkinterfaces[i].Mac {
 			return g.meta.Instance.Networkinterfaces[i].Gateway, nil
 		}
@@ -146,7 +146,7 @@ func (g *GCP) ParseIpv4GatewayFromMetadataByMac(mac string) (string, error) {
 }
 
 func (g *GCP) ParseLinkMTUFromMetadataByMac(mac string) (int, error) {
-	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+	for i:=  range g.meta.Instance.Networkinterfaces {
 		if mac == g.meta.Instance.Networkinterfaces[i].Mac {
 			return g.meta.Instance.Networkinterfaces[i].Mtu, nil
 		}
@@ -158,7 +158,7 @@ func (g *GCP) ParseLinkMTUFromMetadataByMac(mac string) (int, error) {
 func (g *GCP) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, error) {
 	m := make(map[string]bool)
 
-	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+	for i := range g.meta.Instance.Networkinterfaces {
 		if mac == g.meta.Instance.Networkinterfaces[i].Mac {
 			ip := g.meta.Instance.Networkinterfaces[i].IP
 			mask := net.IPMask(net.ParseIP(g.meta.Instance.Networkinterfaces[i].Subnetmask).To4())
@@ -178,7 +178,7 @@ func (g *GCP) parseIpv4AddressesFromMetadataByMac(mac string) (map[string]bool, 
 }
 
 func (g *GCP) ConfigureNetworkFromCloudMeta(m *Environment) error {
-	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+	for i := range g.meta.Instance.Networkinterfaces {
 		l, ok := m.Links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !ok {
 			log.Errorf("Failed to find link having MAC Address='%+v'", g.meta.Instance.Networkinterfaces[i].Mac)
@@ -206,7 +206,7 @@ func (g *GCP) SaveCloudMetadata() error {
 }
 
 func (g *GCP) LinkSaveCloudMetadata(m *Environment) error {
-	for i := 0; i < len(g.meta.Instance.Networkinterfaces); i++ {
+	for i := range g.meta.Instance.Networkinterfaces {
 		l, b := m.Links.LinksByMAC[g.meta.Instance.Networkinterfaces[i].Mac]
 		if !b {
 			continue

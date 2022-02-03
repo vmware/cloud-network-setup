@@ -12,7 +12,6 @@ import (
 
 func ParseIp(ip string) (net.IP, error) {
 	a := net.ParseIP(ip)
-
 	if a.To4() == nil || a.To16() == nil {
 		return nil, errors.New("invalid IP")
 	}

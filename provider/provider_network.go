@@ -48,7 +48,6 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 	for i := range newAddresses {
 		_, ok := existingAddresses[i]
 		if !ok {
-
 			if link.OperState == "down" {
 				if err := network.LinkSetOperStateUp(link.Ifindex); err != nil {
 					log.Errorf("Failed to bring up the link='%s' ifindex='%d': %+v", link.Name, link.Ifindex, err)
@@ -121,12 +120,11 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 
 func (m *Environment) configureRoute(link *network.Link) error {
 	var gw string
-	var err error
-
 	if m.Kind == "gcp" {
 		gw, _ = m.gcp.ParseIpv4GatewayFromMetadataByMac(link.Mac)
 	}
 
+	var err error
 	if len(gw) <= 0 {
 		gw, err = network.GetIpv4Gateway(link.Ifindex)
 		if err != nil {
@@ -149,7 +147,6 @@ func (m *Environment) configureRoute(link *network.Link) error {
 	m.RoutesByIndex[link.Ifindex] = &rt
 
 	log.Infof("Successfully added default gateway='%s' for link='%s' ifindex='%+v' table='%d'", gw, link.Name, link.Ifindex, m.RouteTable+link.Ifindex)
-
 	log.Infof("Link='%s' ifindex='%d' is now configured", link.Name, link.Ifindex)
 
 	return nil

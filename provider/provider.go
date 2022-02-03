@@ -50,17 +50,17 @@ func New(provider string) *Environment {
 	case cloud.GCP:
 		m.gcp = NewGCP()
 	default:
+		return nil
 	}
 
 	return m
 }
 
 func AcquireCloudMetadata(m *Environment) error {
-	var err error
-
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
+	var err error
 	m.Links, err = network.AcquireLinks()
 	if err != nil {
 		log.Errorf("Failed to acquire link information: %+v", err)

@@ -132,8 +132,5 @@ func (m *Environment) dropConfiguration(ifIndex int, address string) {
 	log.Debugf("Dropping routing rules link='%s' ifindex='%d' address='%s'", link.Name, link.Ifindex, address)
 
 	m.removeRoutingPolicyRule(address, &link)
-
-	log.Debugf("Dropping addresses link='%s' ifindex='%d' address='%s'", link.Name, link.Ifindex, address)
-
 	delete(m.AddressesByMAC[mac], address)
 }

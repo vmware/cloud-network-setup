@@ -74,8 +74,7 @@ func LinkSetOperStateUp(ifIndex int) error {
 		return err
 	}
 
-	err = netlink.LinkSetUp(link)
-	if err != nil {
+	if err := netlink.LinkSetUp(link);err != nil {
 		return err
 	}
 

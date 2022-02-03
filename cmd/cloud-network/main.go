@@ -157,6 +157,6 @@ func main() {
 		}
 	}()
 
-	log.Infof("Local Instance Metadata Cache Server listening at '%+v':'%+v'", ip, port)
+	log.Infof("Local instance metadata cache Server listening at '%+v':'%+v'", ip, port)
 	log.Info(srv.ListenAndServe())
 }

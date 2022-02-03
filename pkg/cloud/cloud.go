@@ -70,24 +70,20 @@ func DetectEC2() bool {
 
 func DetectGCP() bool {
 	productName, _ := ioutil.ReadFile("/sys/class/dmi/id/product_name")
-
 	return strings.Contains(string(productName), "Google Compute Engine")
 }
 
 func DetectAlibaba() bool {
 	productName, _ := ioutil.ReadFile("/sys/class/dmi/id/product_name")
-
 	return strings.Contains(string(productName), "Alibaba Cloud")
 }
 
 func DetectDigitalOcean() bool {
 	vendor, _ := ioutil.ReadFile("/sys/class/dmi/id/sys_vendor")
-
 	return strings.Contains(string(vendor), "DigitalOcean")
 }
 
 func DetectOracle() bool {
 	chassisAssetTag, _ := ioutil.ReadFile("/sys/class/dmi/id/chassis_asset_tag")
-
 	return strings.Contains(string(chassisAssetTag), "OracleCloud")
 }
