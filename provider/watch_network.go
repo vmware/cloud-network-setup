@@ -126,7 +126,6 @@ func (m *Environment) dropConfiguration(ifIndex int, address string) {
 	if !ok {
 		return
 	}
-
 	link := m.Links.LinksByMAC[mac]
 
 	log.Debugf("Dropping routing rules link='%s' ifindex='%d' address='%s'", link.Name, link.Ifindex, address)
