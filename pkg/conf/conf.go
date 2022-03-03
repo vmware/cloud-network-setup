@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	Version = "0.1"
+	Version = "0.2.1"
 
 	ConfFile = "cloud-network"
 	ConfPath = "/etc/cloud-network"
