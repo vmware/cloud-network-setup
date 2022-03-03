@@ -14,12 +14,6 @@ import (
 )
 
 func (m *Environment) configureNetwork(link *network.Link, newAddresses map[string]bool) error {
-	existingAddresses, err := network.GetIPv4Addresses(link.Name)
-	if err != nil {
-		log.Errorf("Failed to fetch Ip addresses of link='%s' ifindex='%d': %+v", link.Name, link.Ifindex, err)
-		return err
-	}
-
 	if len(m.AddressesByMAC[link.Mac]) > 0 {
 		earlierAddresses := m.AddressesByMAC[link.Mac]
 
@@ -46,70 +40,66 @@ func (m *Environment) configureNetwork(link *network.Link, newAddresses map[stri
 	}
 
 	for i := range newAddresses {
-		_, ok := existingAddresses[i]
-		if !ok {
-			if link.OperState == "down" {
-				if err := network.LinkSetOperStateUp(link.Ifindex); err != nil {
-					log.Errorf("Failed to bring up the link='%s' ifindex='%d': %+v", link.Name, link.Ifindex, err)
-					return err
-				}
-
-				log.Debugf("Successfully brought up the link='%s' ifindex='%d'", link.Name, link.Ifindex)
+		if link.OperState == "down" {
+			if err := network.LinkSetOperStateUp(link.Ifindex); err != nil {
+				log.Errorf("Failed to bring up the link='%s' ifindex='%d': %+v", link.Name, link.Ifindex, err)
+				return err
 			}
 
-			var mtu int
-			switch m.Kind {
-			case cloud.GCP:
-				mtu, err = m.gcp.ParseLinkMTUFromMetadataByMac(link.Mac)
-				if err != nil || mtu == 0 {
-					log.Warningf("Failed to parse MTU link='%s' ifindex='%d': %+v", err)
-				}
+			log.Debugf("Successfully brought up the link='%s' ifindex='%d'", link.Name, link.Ifindex)
+		}
+
+		var mtu int
+		switch m.Kind {
+		case cloud.GCP:
+			mtu, err := m.gcp.ParseLinkMTUFromMetadataByMac(link.Mac)
+			if err != nil || mtu == 0 {
+				log.Warningf("Failed to parse MTU link='%s' ifindex='%d': %+v", err)
 			}
+		}
 
-			if mtu != 0 && link.MTU != mtu {
-				if err := network.LinkSetMtu(link.Ifindex, mtu); err != nil {
-					log.Warningf("Failed to set MTU link='%s' ifindex='%d': %+v", err)
-				} else {
-					log.Infof("Successfully MTU set to '%d' link='%s' ifindex='%d'", mtu, link.Name, link.Ifindex)
-				}
+		if mtu != 0 && link.MTU != mtu {
+			if err := network.LinkSetMtu(link.Ifindex, mtu); err != nil {
+				log.Warningf("Failed to set MTU link='%s' ifindex='%d': %+v", err)
+			} else {
+				log.Infof("Successfully MTU set to '%d' link='%s' ifindex='%d'", mtu, link.Name, link.Ifindex)
 			}
+		}
 
-			if err := network.AddressSet(link.Name, i); err != nil {
-				log.Errorf("Failed to add address='%s' to link='%s' ifindex='%d': %+v", i, link.Name, link.Ifindex, err)
-				continue
-			}
+		if err := network.AddressSet(link.Name, i); err != nil {
+			log.Errorf("Failed to add address='%s' to link='%s' ifindex='%d': %+v", i, link.Name, link.Ifindex, err)
+			continue
+		}
 
-			log.Infof("Successfully added address='%s on link='%s' ifindex='%d'", i, link.Name, link.Ifindex)
+		log.Infof("Successfully added address='%s on link='%s' ifindex='%d'", i, link.Name, link.Ifindex)
 
-			// https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-multiple-ip-addresses-portal#add
-			// echo 150 custom >> /etc/iproute2/rt_tables
-			// ip rule add from 10.0.0.5 lookup custom
-			// ip route add default via 10.0.0.1 dev eth2 table custom
+		// https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-multiple-ip-addresses-portal#add
+		// echo 150 custom >> /etc/iproute2/rt_tables
+		// ip rule add from 10.0.0.5 lookup custom
+		// ip route add default via 10.0.0.1 dev eth2 table custom
 
-			// https://aws.amazon.com/premiumsupport/knowledge-center/ec2-ubuntu-secondary-network-interface/
-			// Gateway configuration
-			// #ip route add default via 172.31.16.1 dev eth1 table 1000
+		// https://aws.amazon.com/premiumsupport/knowledge-center/ec2-ubuntu-secondary-network-interface/
+		// Gateway configuration
+		// #ip route add default via 172.31.16.1 dev eth1 table 1000
 
-			// Routes and rules
-			// ip route add 172.31.21.115 dev eth1 table 1000
-			// ip rule add from 172.31.21.115 lookup 1000
+		// Routes and rules
+		// ip route add 172.31.21.115 dev eth1 table 1000
+		// ip rule add from 172.31.21.115 lookup 1000
 
-			// https://cloud.google.com/vpc/docs/create-use-multiple-interfaces
-			// sudo ifconfig eth1 192.168.0.2 netmask 255.255.255.255 broadcast 192.168.0.2 mtu 1430
-			// echo "1 rt1" | sudo tee -a /etc/iproute2/rt_tables
-			// sudo ip route add 192.168.0.1 src 192.168.0.2 dev eth1 table rt1
-			// sudo ip route add default via 192.168.0.1 dev eth1 table rt1
-			// sudo ip rule add from 192.168.0.2/32 table rt1
-			// sudo ip rule add to 192.168.0.2/32 table rt1
+		// https://cloud.google.com/vpc/docs/create-use-multiple-interfaces
+		// sudo ifconfig eth1 192.168.0.2 netmask 255.255.255.255 broadcast 192.168.0.2 mtu 1430
+		// echo "1 rt1" | sudo tee -a /etc/iproute2/rt_tables
+		// sudo ip route add 192.168.0.1 src 192.168.0.2 dev eth1 table rt1
+		// sudo ip route add default via 192.168.0.1 dev eth1 table rt1
+		// sudo ip rule add from 192.168.0.2/32 table rt1
+		// sudo ip rule add to 192.168.0.2/32 table rt1
 
-			if err := m.configureRoute(link); err != nil {
-				continue
-			}
+		if err := m.configureRoute(link); err != nil {
+			continue
+		}
 
-			if err := m.configureRoutingPolicyRule(link, i); err != nil {
-				continue
-			}
-
+		if err := m.configureRoutingPolicyRule(link, i); err != nil {
+			continue
 		}
 	}
 	delete(m.AddressesByMAC, link.Mac)
@@ -211,7 +201,6 @@ func (m *Environment) isRulesByTableEmpty(table int) bool {
 }
 
 func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link) error {
-
 	log.Debugf("Removing routing policy rules for address='%s' link='%s'", address, link.Name)
 
 	rule, ok := m.RoutingRulesByAddressFrom[address]
@@ -240,7 +229,6 @@ func (m *Environment) removeRoutingPolicyRule(address string, link *network.Link
 	if ok {
 
 		if m.isRulesByTableEmpty(rt.Table) {
-
 			log.Debugf("Dropping GW='%s' link='%s' ifindex='%d'  Table='%d'", rt.Gw, link.Name, link.Ifindex, rt.Table)
 
 			network.RouteRemove(rt)
