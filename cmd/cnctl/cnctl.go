@@ -15,7 +15,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/cloud-network-setup/pkg/cloud"
-	"github.com/cloud-network-setup/pkg/conf"
+	"github.com/cloud-network-setup/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/parser"
 	"github.com/cloud-network-setup/pkg/web"

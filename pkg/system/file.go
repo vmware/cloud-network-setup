@@ -9,7 +9,7 @@ import (
 	"path"
 	"syscall"
 
-	"github.com/cloud-network-setup/pkg/conf"
+	"github.com/cloud-network-setup/conf"
 )
 
 func CreateStateDirs(provider string, uid int, gid int) error {
