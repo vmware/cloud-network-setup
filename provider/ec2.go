@@ -19,7 +19,7 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cloud-network-setup/pkg/conf"
+	"github.com/cloud-network-setup/conf"
 	"github.com/cloud-network-setup/pkg/network"
 	"github.com/cloud-network-setup/pkg/system"
 	"github.com/cloud-network-setup/pkg/web"
