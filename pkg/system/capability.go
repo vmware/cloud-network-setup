@@ -17,25 +17,13 @@ func ApplyCapability(c *syscall.Credential) error {
 	}
 
 	caps.Set(capability.CAPS|capability.BOUNDS|capability.AMBIENT, capability.CAP_NET_ADMIN)
-	if err := caps.Apply(capability.CAPS | capability.BOUNDS | capability.AMBIENT); err != nil {
-		return err
-	}
-
-	return nil
+	return caps.Apply(capability.CAPS | capability.BOUNDS | capability.AMBIENT)
 }
 
 func EnableKeepCapability() error {
-	if err := unix.Prctl(unix.PR_SET_KEEPCAPS, 1, 0, 0, 0); err != nil {
-		return err
-	}
-
-	return nil
+	return unix.Prctl(unix.PR_SET_KEEPCAPS, 1, 0, 0, 0)
 }
 
 func DisableKeepCapability() error {
-	if err := unix.Prctl(unix.PR_SET_KEEPCAPS, 0, 0, 0, 0); err != nil {
-		return err
-	}
-
-	return nil
+	return unix.Prctl(unix.PR_SET_KEEPCAPS, 0, 0, 0, 0)
 }
