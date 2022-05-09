@@ -13,10 +13,10 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cloud-network-setup/conf"
-	"github.com/cloud-network-setup/pkg/parser"
-	"github.com/cloud-network-setup/pkg/system"
-	"github.com/cloud-network-setup/pkg/web"
+	"github.com/vmware/cloud-network-setup/pkg/parser"
+	"github.com/vmware/cloud-network-setup/pkg/system"
+	"github.com/vmware/cloud-network-setup/pkg/web"
+	"github.com/vmware/cloud-network-setup/conf"
 )
 
 const (

@@ -9,8 +9,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cloud-network-setup/pkg/cloud"
-	"github.com/cloud-network-setup/pkg/network"
+	"github.com/vmware/cloud-network-setup/pkg/cloud"
+	"github.com/vmware/cloud-network-setup/pkg/network"
 )
 
 func (m *Environment) configureNetwork(link *network.Link, newAddresses map[string]bool) error {

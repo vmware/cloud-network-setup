@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 
-	"github.com/cloud-network-setup/pkg/network"
+	"github.com/vmware/cloud-network-setup/pkg/network"
 )
 
 const (

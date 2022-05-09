@@ -17,12 +17,12 @@ import (
 	"github.com/okzk/sdnotify"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cloud-network-setup/pkg/cloud"
-	"github.com/cloud-network-setup/conf"
-	"github.com/cloud-network-setup/pkg/network"
-	"github.com/cloud-network-setup/pkg/parser"
-	"github.com/cloud-network-setup/pkg/system"
-	"github.com/cloud-network-setup/provider"
+	"github.com/vmware/cloud-network-setup/conf"
+	"github.com/vmware/cloud-network-setup/pkg/cloud"
+	"github.com/vmware/cloud-network-setup/pkg/network"
+	"github.com/vmware/cloud-network-setup/pkg/parser"
+	"github.com/vmware/cloud-network-setup/pkg/system"
+	"github.com/vmware/cloud-network-setup/provider"
 )
 
 func cloudNetworkBegin(m *provider.Environment) error {

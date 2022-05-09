@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/cloud-network-setup/pkg/parser"
+	"github.com/vmware/cloud-network-setup/pkg/parser"
 )
 
 const (

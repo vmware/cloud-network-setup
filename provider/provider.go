@@ -10,8 +10,8 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cloud-network-setup/pkg/cloud"
-	"github.com/cloud-network-setup/pkg/network"
+	"github.com/vmware/cloud-network-setup/pkg/cloud"
+	"github.com/vmware/cloud-network-setup/pkg/network"
 )
 
 type Environment struct {
