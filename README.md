@@ -20,21 +20,26 @@ See
 
     This functionality is scattered across different scripts/tools that are cloud provider dependent. `cloud-network` provides a cloud agnostic mechanism to retrieve metadata like network parameters and configure the interfaces. That means no more manual editing the configuration and change it if configuration changes. `cloud-network` automatically configures the interfaces since it has the metadata information.
  
- ```
-https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-multiple-ip-addresses-portal#add
+[Azure](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-multiple-ip-addresses-portal#add)
+```
 # echo 150 custom >> /etc/iproute2/rt_tables
 # ip rule add from 10.0.0.5 lookup custom
 # ip route add default via 10.0.0.1 dev eth2 table custom
+```
 
-https://aws.amazon.com/premiumsupport/knowledge-center/ec2-ubuntu-secondary-network-interface/
+[AWS](https://aws.amazon.com/premiumsupport/knowledge-center/ec2-ubuntu-secondary-network-interface)
+```
 Gateway configuration
 # ip route add default via 172.31.16.1 dev eth1 table 1000
 
 Routes and rules
 # ip route add 172.31.21.115 dev eth1 table 1000
 # ip rule add from 172.31.21.115 lookup 1000
+```
 
-https://cloud.google.com/vpc/docs/create-use-multiple-interfaces
+[GCP](https://cloud.google.com/vpc/docs/create-use-multiple-interfaces)
+
+```
 # sudo ifconfig eth1 192.168.0.2 netmask 255.255.255.255 broadcast 192.168.0.2 mtu 1430
 # echo "1 rt1" | sudo tee -a /etc/iproute2/rt_tables
 # sudo ip route add 192.168.0.1 src 192.168.0.2 dev eth1 table rt1
