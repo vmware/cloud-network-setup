@@ -113,7 +113,7 @@ Supplementary="eth0"
 ❯ > sudo systemctl status cloud-network
 ● cloud-network.service - Configures network in cloud enviroment
      Loaded: loaded (/usr/lib/systemd/system/cloud-network.service; disabled; vendor preset: enabled)
-     Active: active (running) since Mon 2021-05-31 22:54:50 UTC; 3min 31s ago
+     Active: active (running) since Mon 2022-05-31 22:54:50 UTC; 3min 31s ago
    Main PID: 19754 (cloud-network)
       Tasks: 5 (limit: 4400)
      Memory: 8.7M
