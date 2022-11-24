@@ -372,21 +372,20 @@ func fetchSSHKeysFromCloudMetadata(ip string, port string) {
 }
 
 func fetchGCPCloudProjectMetadata(ip string, port string) {
+	if cloud.DetectCloud() != cloud.GCP {
+		fmt.Println("unsupported cloud environment")
+		return
+	}
+
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/system", nil)
 	if err != nil {
 		return
 	}
 
-	switch cloud.DetectCloud() {
-	case cloud.GCP:
-		f := provider.GCPMetaData{}
-		json.Unmarshal(resp, &f)
+	f := provider.GCPMetaData{}
+	json.Unmarshal(resp, &f)
 
-		displayGCPCloudProjectMetadata(&f)
-	default:
-		fmt.Printf("Failed to detect cloud environment: '%+v'", err)
-		return
-	}
+	displayGCPCloudProjectMetadata(&f)
 }
 
 func displayIdentityCredentialsFromMetadata(c *provider.EC2Credentials) {
@@ -399,21 +398,19 @@ func displayIdentityCredentialsFromMetadata(c *provider.EC2Credentials) {
 }
 
 func fetchIdentityCredentialsFromCloudMetadata(ip string, port string) {
+	if cloud.DetectCloud() != cloud.AWS {
+		fmt.Println("unsupported cloud environment")
+		return
+	}
+
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/credentials", nil)
 	if err != nil {
 		return
 	}
+	var c provider.EC2Credentials
 
-	switch cloud.DetectCloud() {
-	case cloud.AWS:
-		var c provider.EC2Credentials
-
-		json.Unmarshal(resp, &c)
-		displayIdentityCredentialsFromMetadata(&c)
-	default:
-		fmt.Printf("unsupported: '%+v'", err)
-		return
-	}
+	json.Unmarshal(resp, &c)
+	displayIdentityCredentialsFromMetadata(&c)
 }
 
 func displayDynamicInstanceIdentityDocument(c *provider.EC2Document) {
@@ -443,39 +440,36 @@ func displayDynamicInstanceIdentityDocument(c *provider.EC2Document) {
 }
 
 func fetchDynamicInstanceIdentityFromCloudMetadata(s string, ip string, port string) {
+	if cloud.DetectCloud() != cloud.AWS {
+		fmt.Println("unsupported cloud environment")
+		return
+	}
+
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/dynamicinstanceidentity/"+s, nil)
 	if err != nil {
 		return
 	}
+	switch s {
+	case "document":
+		var c provider.EC2Document
 
-	switch cloud.DetectCloud() {
-	case cloud.AWS:
-		switch s {
-		case "document":
-			var c provider.EC2Document
+		json.Unmarshal(resp, &c)
+		displayDynamicInstanceIdentityDocument(&c)
+	case "pkcs7":
+		var c string
 
-			json.Unmarshal(resp, &c)
-			displayDynamicInstanceIdentityDocument(&c)
-		case "pkcs7":
-			var c string
+		json.Unmarshal(resp, &c)
+		fmt.Println(c)
+	case "signature":
+		var c string
 
-			json.Unmarshal(resp, &c)
-			fmt.Println(c)
-		case "signature":
-			var c string
+		json.Unmarshal(resp, &c)
+		fmt.Println(c)
+	case "rsa2048":
+		var c string
 
-			json.Unmarshal(resp, &c)
-			fmt.Println(c)
-		case "rsa2048":
-			var c string
-
-			json.Unmarshal(resp, &c)
-			fmt.Println(c)
-		default:
-		}
-	default:
-		fmt.Printf("unsupported: '%+v'", err)
-		return
+		json.Unmarshal(resp, &c)
+		fmt.Println(c)
 	}
 }
 
