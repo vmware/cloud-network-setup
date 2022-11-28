@@ -162,6 +162,11 @@ Services Partition: aws
           Subnet: 10.0.0.0
 ```
 
+#### cloud network setup in action
+
+https://user-images.githubusercontent.com/145210/204362048-960040c8-548a-4d44-a9a9-f1940ce9f554.mp4
+
+
 #### Contributing
 ----
 
