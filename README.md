@@ -110,19 +110,26 @@ Supplementary="eth0"
 ```
 
 ```bash
-❯ > sudo systemctl status cloud-network
-● cloud-network.service - Configures network in cloud enviroment
-     Loaded: loaded (/usr/lib/systemd/system/cloud-network.service; disabled; vendor preset: enabled)
-     Active: active (running) since Mon 2022-05-31 22:54:50 UTC; 3min 31s ago
-   Main PID: 19754 (cloud-network)
-      Tasks: 5 (limit: 4400)
-     Memory: 8.7M
+sus@clould-network:~$ sudo systemctl status cloud-network
+● cloud-network.service - Configures network in cloud environment from metadata
+     Loaded: loaded (/lib/systemd/system/cloud-network.service; enabled; vendor preset: enabled)
+     Active: active (running) since Thu 2022-11-24 14:29:27 UTC; 6 days ago
+   Main PID: 8899 (cloud-network)
+      Tasks: 10 (limit: 9530)
+     Memory: 16.6M
+        CPU: 13.296s
      CGroup: /system.slice/cloud-network.service
-             └─19754 /usr/bin/cloud-network
+             └─8899 /usr/bin/cloud-network
 
-May 31 22:54:50 zeus-final-2 systemd[1]: Started Configures network in cloud enviroment.
-
-
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Received address update: {{10.4.0.4 ffffff00} 2 128 0 4294967295 4294967295 true}"
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Address='10.4.0.4/24' added to link ifindex='2'"
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Received address update: {{10.4.0.5 ffffff00} 3 128 0 4294967295 4294967295 true}"
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Address='10.4.0.5/24' added to link ifindex='3'"
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Successfully added address='10.4.0.5/24 on link='eth1' ifindex='3'"
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Successfully added default gateway='10.4.0.1' for link='eth1' ifindex='3' table='10002'"
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Link='eth1' ifindex='3' is now configured"
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Successfully added routing policy rule 'from' in route table='10002' for link='eth1' ifindex='3'"
+Nov 24 14:29:27 clould-network cloud-network[8899]: level=info msg="Successfully added routing policy rule 'to' in route table='10002' for l
 ```
 
 #### cnctl
