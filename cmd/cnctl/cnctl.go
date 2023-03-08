@@ -483,6 +483,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	kind := cloud.DetectCloud()
+	if len(kind) <= 0 {
+		fmt.Printf("Failed to detect cloud environment, Aborting ...")
+		os.Exit(1)
+	}
+
 	cli.VersionPrinter = func(c *cli.Context) {
 		fmt.Printf("Version=%s\n", c.App.Version)
 	}
