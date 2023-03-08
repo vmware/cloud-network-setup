@@ -1,6 +1,6 @@
 module github.com/vmware/cloud-network-setup
 
-go 1.19
+go 1.20
 
 require (
 	github.com/gorilla/mux v1.8.0
@@ -9,7 +9,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
-	github.com/urfave/cli/v2 v2.24.4
+	github.com/urfave/cli/v2 v2.25.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/sys v0.6.0
 )
