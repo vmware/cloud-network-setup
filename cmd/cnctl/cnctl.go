@@ -485,7 +485,7 @@ func main() {
 
 	kind := cloud.DetectCloud()
 	if len(kind) <= 0 {
-		fmt.Printf("Failed to detect cloud environment, Aborting ...")
+		fmt.Println("Failed to detect cloud environment, Aborting ...")
 		os.Exit(1)
 	}
 
