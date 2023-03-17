@@ -1,4 +1,4 @@
-// Copyright 2022 VMware, Inc.
+// Copyright 2023 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 package provider
@@ -23,10 +23,10 @@ const (
 	// Azure IMDS REST Endpoint.
 	AzureIMDSRESTEndpoint string = "169.254.169.254"
 
-	// AzureAPIVersion API version
+	// Azure API Version API version
 	AzureAPIVersion string = "?api-version=2020-09-01"
 
-	//Azure Metadata URL base
+	// Azure Metadata URL base
 	AzureMetadataURLBase string = "/metadata/instance"
 )
 
