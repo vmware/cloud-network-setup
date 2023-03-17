@@ -119,7 +119,7 @@ func displayGCPCloudNetworkMetadata(links *network.Links, g *provider.GCPMetaDat
 func fetchCloudNetworkMetadata(ip string, port string) error {
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/network", nil)
 	if err != nil {
-		fmt.Printf("Failed to fetch instance metadata: '%+v'", err)
+		fmt.Printf("Failed to fetch instance metadata: '%v'", err)
 		return err
 	}
 
@@ -282,6 +282,7 @@ func displayGCPCloudProjectMetadata(g *provider.GCPMetaData) {
 func fetchCloudSystemMetadata(ip string, port string) {
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/system", nil)
 	if err != nil {
+		fmt.Printf("Failed to fetch instance metadata: '%v'", err)
 		return
 	}
 
@@ -344,6 +345,7 @@ func displayGCPCloudSSHKeysFromMetadata(g *provider.GCPMetaData) {
 func fetchSSHKeysFromCloudMetadata(ip string, port string) {
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/system", nil)
 	if err != nil {
+		fmt.Printf("Failed to fetch instance metadata: '%v'", err)
 		return
 	}
 
@@ -372,11 +374,6 @@ func fetchSSHKeysFromCloudMetadata(ip string, port string) {
 }
 
 func fetchGCPCloudProjectMetadata(ip string, port string) {
-	if cloud.DetectCloud() != cloud.GCP {
-		fmt.Println("unsupported cloud environment")
-		return
-	}
-
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/system", nil)
 	if err != nil {
 		return
@@ -389,7 +386,7 @@ func fetchGCPCloudProjectMetadata(ip string, port string) {
 }
 
 func displayIdentityCredentialsFromMetadata(c *provider.EC2Credentials) {
-	fmt.Printf("     Accesskey Id: %+v\n", c.Accesskeyid)
+	fmt.Printf("    Access key Id: %+v\n", c.Accesskeyid)
 	fmt.Printf("             Type: %+v\n", c.Type)
 	fmt.Printf("       Expiration: %+v\n", c.Expiration)
 	fmt.Printf("             Code: %+v\n", c.Code)
@@ -398,13 +395,9 @@ func displayIdentityCredentialsFromMetadata(c *provider.EC2Credentials) {
 }
 
 func fetchIdentityCredentialsFromCloudMetadata(ip string, port string) {
-	if cloud.DetectCloud() != cloud.AWS {
-		fmt.Println("unsupported cloud environment")
-		return
-	}
-
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/credentials", nil)
 	if err != nil {
+		fmt.Printf("Failed to fetch instance metadata: '%v'", err)
 		return
 	}
 	var c provider.EC2Credentials
@@ -440,13 +433,9 @@ func displayDynamicInstanceIdentityDocument(c *provider.EC2Document) {
 }
 
 func fetchDynamicInstanceIdentityFromCloudMetadata(s string, ip string, port string) {
-	if cloud.DetectCloud() != cloud.AWS {
-		fmt.Println("unsupported cloud environment")
-		return
-	}
-
 	resp, err := web.Dispatch("http://"+ip+":"+port+"/api/cloud/dynamicinstanceidentity/"+s, nil)
 	if err != nil {
+		fmt.Printf("Failed to fetch instance metadata: '%v'", err)
 		return
 	}
 	switch s {
