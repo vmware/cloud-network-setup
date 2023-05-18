@@ -106,7 +106,7 @@ LogFormat="text"
 
 [Network]
 Listen="127.0.0.1:5209"
-Supplementary="eth0"
+Supplementary="eth1"
 ```
 
 ```bash
