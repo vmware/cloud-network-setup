@@ -3,7 +3,7 @@ module github.com/vmware/cloud-network-setup
 go 1.20
 
 require (
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
